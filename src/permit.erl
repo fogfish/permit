@@ -31,7 +31,7 @@
 %%
 %%
 start() ->
-   applib:boot(?MODULE, "./priv/app.config").
+   applib:boot(?MODULE, code:where_is_file("app.config")).
 
 %%
 %% sing-up to service, creates root account, returns access token
