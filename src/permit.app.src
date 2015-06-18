@@ -1,0 +1,17 @@
+{application, permit,
+   [
+      {description, "identity and access management"},
+      {vsn,         "0.0.0"},
+      {modules,     []},
+      {registered,  []},
+      {applications,[
+         kernel
+        ,stdlib
+        ,lager
+        ,thingz
+        ,memcache
+      ]},
+      {mod, {permit_app, []}},
+      {env, []}
+   ]
+}.  
