@@ -94,7 +94,7 @@ key_pair(<<"urn:root", _/binary>> = Urn) ->
    end;
    
 key_pair(_) ->
-   {error, access}.
+   {error, unauthorized}.
 
 %%
 %% authorize keys, return token
@@ -121,7 +121,7 @@ check(Token) ->
       {ok, <<"urn:pubkey:", _/binary>>} ->
          ok;
       {ok, _} ->
-         {error, access};
+         {error, unauthorized};
       Error   ->
          Error
    end.   

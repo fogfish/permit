@@ -56,7 +56,7 @@ auth1(Cache, Entity) ->
          memcache:put(Cache, Token, pair:x(id, Entity), [{w, ?CONFIG_W}]),
          {ok, Token};
       false ->
-         {error, access}
+         {error, unauthorized}
    end.
 
 %%
@@ -102,10 +102,10 @@ lookup(Db, Entity) ->
    of
       %% user do not exists      
       {error,[{badarg, _}]} ->
-         {error, access};
+         {error, unauthorized};
       %% user do not exists
       {ok,    []} -> 
-         {error, access};      
+         {error, unauthorized};      
       %% system error
       {error, _} = Error -> 
          Error;
