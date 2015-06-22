@@ -114,12 +114,14 @@ auth(Access, Secret) ->
 
 %%
 %% validate access token
--spec(check/1 :: (token()) -> ok | {error, any()}).
+-spec(check/1 :: (token()) -> {ok, atom()} | {error, any()}).
 
 check(Token) ->
    case memcache:get(?CONFIG_CACHE, Token) of
+      {ok, <<"urn:root:", _/binary>>} ->
+         {ok, root};
       {ok, <<"urn:pubkey:", _/binary>>} ->
-         ok;
+         {ok, pubkey};
       {ok, _} ->
          {error, unauthorized};
       Error   ->
