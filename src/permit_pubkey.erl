@@ -100,12 +100,15 @@ lookup(Db, Entity) ->
    case
       thingz:entity(Db, pair:x(id, Entity), [k, {r, ?CONFIG_R}])
    of
+      %% user do not exists      
+      {error,[{badarg, _}]} ->
+         {error, access};
+      %% user do not exists
+      {ok,    []} -> 
+         {error, access};      
       %% system error
       {error, _} = Error -> 
          Error;
-      %% user do not exists
-      {ok,    []} -> 
-         {error, access};
       %% user exists, authorize
       {ok, Value} ->
          {ok, Value ++ [{<<"secret">>, pair:x(<<"secret">>, Entity)}]} 
