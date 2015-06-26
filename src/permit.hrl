@@ -17,8 +17,9 @@
 
 %%
 %%
--define(CONFIG_SYS,   <<"sys">>).
--define(CONFIG_CACHE, <<"token">>).
+-define(CONFIG_SYS,          <<"sys">>).
+-define(CONFIG_CACHE,      <<"token">>).
+-define(CONFIG_CACHE_TTL,        43200).
 
 -define(CONFIG_R,      2).  %% number of reader peers
 -define(CONFIG_W,      2).  %% number of writer peers

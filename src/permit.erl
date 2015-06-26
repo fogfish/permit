@@ -6,15 +6,17 @@
 %%
 %% @todo
 %%   * token scope 
+%%   * associate user data with cert (root + pubkey e.g. first/last names, device id, etc)
+%%   * management interface to revoke key
 -module(permit).
 -include("permit.hrl").
 
 -export([start/0]).
 -export([
+   ensure/0,
    signup/2,
    signin/2,
    pubkey/1,
-
    auth/2,
    check/1
 ]).
@@ -27,11 +29,24 @@
 -type(secret() :: binary()).
 -type(token()  :: binary()).
 
-
 %%
 %%
 start() ->
    applib:boot(?MODULE, code:where_is_file("app.config")).
+
+%%
+%% ensure actors
+-spec(ensure/0 :: () -> ok).
+
+ensure() ->
+   ok = thingz:spawn(?CONFIG_SYS),
+   ok = memcache:spawn(?CONFIG_CACHE, [
+      {type,   set}
+     ,{policy, mru}
+     ,{n,       12}
+     ,{ttl,    opts:val(ttl, ?CONFIG_CACHE_TTL, permit)}
+   ]).
+
 
 %%
 %% sing-up to service, creates root account, returns access token
@@ -133,6 +148,7 @@ check(Token) ->
 %% private
 %%
 %%-----------------------------------------------------------------------------
+
 
 
 
