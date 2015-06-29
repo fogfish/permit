@@ -1,26 +1,23 @@
 %% @doc
-%%   account
+%%    public / private key management abstraction  
 -module(permit_pubkey).
 -include("permit.hrl").
 
-%% @todo: rename as account with multiple schema support (root, access, etc) + DAO ?
-
 -export([
-   new/3
-  ,urn/2
-  ,auth/1
+   new/2
+  ,auth/2
   ,create/2
   ,lookup/2
 ]).
 
 
 %%
-%% new account object
-new(Type, Access, Secret) ->
+%% create new pubkey certificate 
+new(Access, Secret) ->
    Salt = permit_hash:random(?CONFIG_SALT),
    Hash = permit_hash:sign(Secret, Salt),
    [
-      {id,           urn(Type, Access)}
+      {id,           Access}
      ,{<<"hash">>,   Hash}
      ,{<<"salt">>,   Salt}
       
@@ -29,44 +26,37 @@ new(Type, Access, Secret) ->
    ].
 
 %%
-%%
-urn(root,   Access) ->
-   <<"urn:root:", Access/binary>>;
-urn(pubkey, Access) ->
-   <<"urn:pubkey:", Access/binary>>.
-
-
-%%
 %% authenticate root account
 %% entity might contain multiple instances of <<"hash">>, <<"salt">> due concurrency
 %% use uid:g() as tx to filter most recent values
-auth(Entity) ->
-   auth1(filter(Entity)).
+auth(Entity, Scope) ->
+   [{id, Access}|_] = Ent = filter(Entity),
+   auth(Access, Ent, Scope).
 
-auth1(Entity) ->
+auth(Access, Entity, Scope) ->
    Pass = pair:x(<<"secret">>, Entity),
    Hash = pair:x(<<"hash">>,   Entity),
    Salt = pair:x(<<"salt">>,   Entity),
    Sign = permit_hash:sign(Pass, Salt),
    case permit_hash:eq(Sign, Hash) of
       true  ->
-         {ok, token(pair:x(id, Entity), Entity)};
+         {ok, token(pair:x(<<"account">>, Entity), Access, Scope)};
       false ->
          {error, unauthorized}
    end.
 
-token(<<"urn:root:", _/binary>> = Id, _Entity) ->
+token(undefined, Account, Scope) ->
    permit_token:encode(
-      permit_token:new(?CONFIG_TTL_ROOT, [root], Id)
+      permit_token:new(Scope, Account)
    );
 
-token(<<"urn:pubkey:", _/binary>> = Id, Entity) ->
+token(Account, Access, Scope) ->
    permit_token:encode(
-      permit_token:new(?CONFIG_TTL_USER, [user], pair:x(<<"account">>, Entity), Id)
+      permit_token:new(Scope, Account, Access)
    ).
    
 %%
-%% create entity to storage
+%% create pubkey entity to storage
 create(Db, Entity) ->
    create_uid(Db, Entity).
 

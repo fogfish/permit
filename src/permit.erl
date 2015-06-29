@@ -5,8 +5,8 @@
 %%   3. encrypt hash using AES
 %%
 %% @todo
-%%   * token scope 
 %%   * associate user data with cert (root + pubkey e.g. first/last names, device id, etc)
+%%   * associate token scope with cert
 %%   * management interface to revoke key
 -module(permit).
 -include("permit.hrl").
@@ -48,11 +48,11 @@ start() ->
 signup(User, Pass) ->
    case 
       permit_pubkey:create(?CONFIG_SYS, 
-         permit_pubkey:new(root, User, Pass)
+         permit_pubkey:new(uri:s({urn, root, User}), Pass)
       ) 
    of
       {ok, Entity} ->
-         permit_pubkey:auth(Entity);
+         permit_pubkey:auth(Entity, [root]);
       {error,   _} = Error ->
          Error
    end.
@@ -64,34 +64,33 @@ signup(User, Pass) ->
 signin(User, Pass) ->
    case 
       permit_pubkey:lookup(?CONFIG_SYS, 
-         permit_pubkey:new(root, User, Pass)
+         permit_pubkey:new(uri:s({urn, root, User}), Pass)
       ) 
    of
       {ok, Entity} ->
-         permit_pubkey:auth(Entity);
+         permit_pubkey:auth(Entity, [root]);
       {error,   _} = Error ->
          Error
    end.
-      
+
 %%
 %% generate access/secret keys, associate them with root account
 -spec(pubkey/1 :: (token()) -> {ok, {access(), secret()}} | {error, any()}).
 
 pubkey(Token) ->
    T = permit_token:decode(Token),
-   pubkey(permit_token:check(root, T), T).
+   pubkey(permit_token:check(?CONFIG_TTL_ROOT, root, T), T).
 
 pubkey(true,  #{account := Id}) ->
    Access = permit_hash:key(?CONFIG_ACCESS),
    Secret = permit_hash:key(?CONFIG_SECRET),
    case 
       permit_pubkey:create(?CONFIG_SYS, 
-         permit_pubkey:new(pubkey, Access, Secret) ++ [{<<"account">>, Id}]
+         permit_pubkey:new(uri:s({urn, pubkey, Access}), Secret) ++ [{<<"account">>, Id}]
       ) 
    of
       {ok, _Entity} ->
          {ok, {Access, Secret}};
-
       {error,   _} = Error ->
          Error
    end;
@@ -105,7 +104,6 @@ pubkey(_, _) ->
 %%
 %%-----------------------------------------------------------------------------
 
-
 %%
 %% authorize keys, return token
 -spec(auth/2 :: (access(), secret()) -> {ok, token()}). 
@@ -113,25 +111,30 @@ pubkey(_, _) ->
 auth(Access, Secret) ->
    case 
       permit_pubkey:lookup(?CONFIG_SYS, 
-         permit_pubkey:new(pubkey, Access, Secret)
+         permit_pubkey:new(uri:s({urn, pubkey, Access}), Secret)
       )
    of
       {ok, Entity} ->
-         permit_pubkey:auth(Entity);
+         permit_pubkey:auth(Entity, [user]);
       {error,   _} = Error ->
          Error
    end.
 
 %%
 %% validate access token
--spec(check/1 :: (token()) -> {ok, atom()} | {error, any()}).
--spec(check/2 :: (any(), token()) -> {ok, atom()} | {error, any()}).
+-spec(check/1 :: (token()) -> ok | unauthorized).
+-spec(check/2 :: (any(), token()) -> ok | unauthorized).
 
 check(Token) ->
    check(user, Token).
 
 check(Scope, Token) ->
-   permit_token:check(Scope, Token).
+   case permit_token:check(?CONFIG_TTL_USER, Scope, Token) of
+      true  ->
+         ok;
+      false ->
+         unauthorized
+   end.
 
 %%-----------------------------------------------------------------------------
 %%

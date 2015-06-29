@@ -3,10 +3,10 @@
 -module(permit_token).
 
 -export([
+   new/1,
    new/2,
    new/3,
-   new/4,
-   check/2,
+   check/3,
    encode/1,
    decode/1
 ]).
@@ -16,23 +16,23 @@
 
 %%
 %%
-new(TTL, Scope) ->
-   #{version => ?VSN, t => tempus:add(os:timestamp(), TTL), scope => Scope}.
+new(Scope) ->
+   #{version => ?VSN, t => os:timestamp(), scope => Scope}.
 
-new(TTL, Scope, Account) ->
-   #{version => ?VSN, t => tempus:add(os:timestamp(), TTL), scope => Scope, account => Account}.
+new(Scope, Account) ->
+   #{version => ?VSN, t => os:timestamp(), scope => Scope, account => Account}.
 
-new(TTL, Scope, Account, Access) ->
-   #{version => ?VSN, t => tempus:add(os:timestamp(), TTL), scope => Scope, account => Account, access => Access}.
+new(Scope, Account, Access) ->
+   #{version => ?VSN, t => os:timestamp(), scope => Scope, account => Account, access => Access}.
 
 %%
 %%
-check(Scope, Token)
+check(TTL, Scope, Token)
  when is_binary(Token) ->
-   check(Scope, decode(Token));
-check(Scope, #{t := T, scope := List}) ->
-   case os:timestamp() of
-      X when X < T ->
+   check(TTL, Scope, decode(Token));
+check(TTL, Scope, #{t := T, scope := List}) ->
+   case tempus:add(os:timestamp(), TTL) of
+      X when X > T ->
          lists:member(Scope, List);
       _ ->
          false
