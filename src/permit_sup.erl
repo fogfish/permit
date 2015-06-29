@@ -23,6 +23,8 @@ init([]) ->
    {ok,
       {
          {one_for_one, 4, 1800},
-         []
+         [
+            % ?CHILD(worker, permit_)
+         ]
       }
    }.

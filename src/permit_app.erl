@@ -9,7 +9,6 @@
 %%
 %%
 start(_Type, _Args) ->
-   ok = permit:ensure(),
    permit_sup:start_link().
 
 %%

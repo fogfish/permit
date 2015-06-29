@@ -8,7 +8,7 @@
 -export([
    new/3
   ,urn/2
-  ,auth/2
+  ,auth/1
   ,create/2
   ,lookup/2
 ]).
@@ -40,25 +40,31 @@ urn(pubkey, Access) ->
 %% authenticate root account
 %% entity might contain multiple instances of <<"hash">>, <<"salt">> due concurrency
 %% use uid:g() as tx to filter most recent values
-auth(Cache, Entity) ->
-   auth1(Cache, filter(Entity)).
+auth(Entity) ->
+   auth1(filter(Entity)).
 
-auth1(Cache, Entity) ->
+auth1(Entity) ->
    Pass = pair:x(<<"secret">>, Entity),
    Hash = pair:x(<<"hash">>,   Entity),
    Salt = pair:x(<<"salt">>,   Entity),
    Sign = permit_hash:sign(Pass, Salt),
    case permit_hash:eq(Sign, Hash) of
       true  ->
-         %% @todo: scope
-         Token = permit_hash:key(?CONFIG_TOKEN),
-         %% @todo: memcache:add + error handling
-         memcache:put(Cache, Token, pair:x(id, Entity), [{w, ?CONFIG_W}]),
-         {ok, Token};
+         {ok, token(pair:x(id, Entity), Entity)};
       false ->
          {error, unauthorized}
    end.
 
+token(<<"urn:root:", _/binary>> = Id, _Entity) ->
+   permit_token:encode(
+      permit_token:new(?CONFIG_TTL_ROOT, [root], Id)
+   );
+
+token(<<"urn:pubkey:", _/binary>> = Id, Entity) ->
+   permit_token:encode(
+      permit_token:new(?CONFIG_TTL_USER, [user], pair:x(<<"account">>, Entity), Id)
+   ).
+   
 %%
 %% create entity to storage
 create(Db, Entity) ->

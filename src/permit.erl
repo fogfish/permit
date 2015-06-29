@@ -13,12 +13,12 @@
 
 -export([start/0]).
 -export([
-   ensure/0,
    signup/2,
    signin/2,
    pubkey/1,
    auth/2,
-   check/1
+   check/1,
+   check/2
 ]).
 
 %%
@@ -34,19 +34,11 @@
 start() ->
    applib:boot(?MODULE, code:where_is_file("app.config")).
 
+%%-----------------------------------------------------------------------------
 %%
-%% ensure actors
--spec(ensure/0 :: () -> ok).
-
-ensure() ->
-   ok = thingz:spawn(?CONFIG_SYS),
-   ok = memcache:spawn(?CONFIG_CACHE, [
-      {type,   set}
-     ,{policy, mru}
-     ,{n,       12}
-     ,{ttl,    opts:val(ttl, ?CONFIG_CACHE_TTL, permit)}
-   ]).
-
+%% consumer management
+%%
+%%-----------------------------------------------------------------------------
 
 %%
 %% sing-up to service, creates root account, returns access token
@@ -60,7 +52,7 @@ signup(User, Pass) ->
       ) 
    of
       {ok, Entity} ->
-         permit_pubkey:auth(?CONFIG_CACHE, Entity);
+         permit_pubkey:auth(Entity);
       {error,   _} = Error ->
          Error
    end.
@@ -76,7 +68,7 @@ signin(User, Pass) ->
       ) 
    of
       {ok, Entity} ->
-         permit_pubkey:auth(?CONFIG_CACHE, Entity);
+         permit_pubkey:auth(Entity);
       {error,   _} = Error ->
          Error
    end.
@@ -86,19 +78,15 @@ signin(User, Pass) ->
 -spec(pubkey/1 :: (token()) -> {ok, {access(), secret()}} | {error, any()}).
 
 pubkey(Token) ->
-   case memcache:get(?CONFIG_CACHE, Token) of
-      {ok, Urn} ->
-         key_pair(Urn);
-      Error   ->
-         Error
-   end.   
+   T = permit_token:decode(Token),
+   pubkey(permit_token:check(root, T), T).
 
-key_pair(<<"urn:root", _/binary>> = Urn) ->
+pubkey(true,  #{account := Id}) ->
    Access = permit_hash:key(?CONFIG_ACCESS),
    Secret = permit_hash:key(?CONFIG_SECRET),
    case 
       permit_pubkey:create(?CONFIG_SYS, 
-         permit_pubkey:new(pubkey, Access, Secret) ++ [{<<"link">>, Urn}]
+         permit_pubkey:new(pubkey, Access, Secret) ++ [{<<"account">>, Id}]
       ) 
    of
       {ok, _Entity} ->
@@ -108,8 +96,15 @@ key_pair(<<"urn:root", _/binary>> = Urn) ->
          Error
    end;
    
-key_pair(_) ->
+pubkey(_, _) ->
    {error, unauthorized}.
+
+%%-----------------------------------------------------------------------------
+%%
+%% authorization (oauth)
+%%
+%%-----------------------------------------------------------------------------
+
 
 %%
 %% authorize keys, return token
@@ -122,7 +117,7 @@ auth(Access, Secret) ->
       )
    of
       {ok, Entity} ->
-         permit_pubkey:auth(?CONFIG_CACHE, Entity);
+         permit_pubkey:auth(Entity);
       {error,   _} = Error ->
          Error
    end.
@@ -130,18 +125,13 @@ auth(Access, Secret) ->
 %%
 %% validate access token
 -spec(check/1 :: (token()) -> {ok, atom()} | {error, any()}).
+-spec(check/2 :: (any(), token()) -> {ok, atom()} | {error, any()}).
 
 check(Token) ->
-   case memcache:get(?CONFIG_CACHE, Token) of
-      {ok, <<"urn:root:", _/binary>>} ->
-         {ok, root};
-      {ok, <<"urn:pubkey:", _/binary>>} ->
-         {ok, pubkey};
-      {ok, _} ->
-         {error, unauthorized};
-      Error   ->
-         Error
-   end.   
+   check(user, Token).
+
+check(Scope, Token) ->
+   permit_token:check(Scope, Token).
 
 %%-----------------------------------------------------------------------------
 %%
