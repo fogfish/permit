@@ -59,6 +59,12 @@ decode(aes, <<IVec:16/binary, Data/binary>>) ->
    <<Len:16, Text:Len/binary, _/binary>> = crypto:block_decrypt(aes_cbc128, SKey, IVec, Data),
    erlang:binary_to_term(Text).
 
+%%-----------------------------------------------------------------------------
+%%
+%% private
+%%
+%%-----------------------------------------------------------------------------
+
 %%
 %% pad message to 16-byte blocks
 pad(Msg) ->
