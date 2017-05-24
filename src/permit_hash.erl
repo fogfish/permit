@@ -42,4 +42,3 @@ eq(HashA, HashB) ->
          )
       ]
    ).
-

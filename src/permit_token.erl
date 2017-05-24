@@ -80,4 +80,3 @@ pad(Msg) ->
          Pad = permit_hash:random(?PAD - N),  
          <<Len:16, Msg/binary, Pad/binary>>
    end.
-
