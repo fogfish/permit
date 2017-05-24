@@ -16,9 +16,3 @@
 -define(CONFIG_PBKDF2_HASH, sha256).
 -define(CONFIG_PBKDF2_C,     65536). 
 
-%%
-%% 
--define(CONFIG_SYS,      <<"permit">>).
-
--define(CONFIG_R,      2).  %% number of reader peers
--define(CONFIG_W,      2).  %% number of writer peers
