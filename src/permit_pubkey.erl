@@ -9,7 +9,7 @@
   ,access/0
   ,secret/0
   ,master/0
-  ,nonsense/0
+  ,nonce/0
   ,authenticate/3
 ]).
 
@@ -17,28 +17,28 @@
 %%
 %% create new pubkey certificate 
 new(Access, Secret) ->
-   Nonsense = permit_hash:random(?CONFIG_SALT),
+   Nonce = permit_hash:random(?CONFIG_SALT),
    {ok, [$.||
       lens:put(access(), Access, #{}),
-      lens:put(secret(), permit_hash:sign(Secret, Nonsense), _),
-      lens:put(nonsense(), Nonsense, _)
+      lens:put(secret(), permit_hash:sign(Secret, Nonce), _),
+      lens:put(nonce(), Nonce, _)
    ]}.
 
 %%
 %% 
-access()   -> lens:map(<<"access">>,  undefined).
-secret()   -> lens:map(<<"secret">>,  undefined).
-master()   -> lens:map(<<"master">>,  undefined).
-nonsense() -> lens:map(<<"nonsense">>, undefined).
+access()  -> lens:map(<<"access">>,  undefined).
+secret()  -> lens:map(<<"secret">>,  undefined).
+master()  -> lens:map(<<"master">>,  undefined).
+nonce()   -> lens:map(<<"nonce">>,   undefined).
 
 %%
 %% authenticate certificate, return a token with given scope
 authenticate(Entity, Secret, Scope) ->
-   Access   = lens:get(access(), Entity), 
-   Master   = lens:get(master(), Entity), 
-   Nonsense = lens:get(nonsense(), Entity),
-   SignA    = lens:get(secret(), Entity),
-   SignB    = permit_hash:sign(Secret, Nonsense),
+   Access = lens:get(access(), Entity), 
+   Master = lens:get(master(), Entity), 
+   Nonce  = lens:get(nonce(),  Entity),
+   SignA  = lens:get(secret(), Entity),
+   SignB  = permit_hash:sign(Secret, Nonce),
    case permit_hash:eq(SignA, SignB) of
       true  ->
          {ok, token(Master, Access, Scope)};
