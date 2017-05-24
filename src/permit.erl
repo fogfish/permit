@@ -10,21 +10,20 @@
 %%   * management interface to revoke key
 -module(permit).
 -include("permit.hrl").
+-compile({parse_transform, category}).
 
 -export([start/0]).
 -export([
-   signup/2,
-   signin/2,
+   create/2,
+   lookup/2,
    pubkey/1,
    auth/2,
-   check/1,
-   check/2
+   validate/1,
+   validate/2
 ]).
 
 %%
 %% data types
--type(user()   :: binary()).
--type(pass()   :: binary()).
 -type(access() :: binary()).
 -type(secret() :: binary()).
 -type(token()  :: binary()).
@@ -36,67 +35,65 @@ start() ->
 
 %%-----------------------------------------------------------------------------
 %%
-%% consumer management
+%% key management
 %%
 %%-----------------------------------------------------------------------------
 
 %%
-%% sing-up to service, creates root account, returns access token
-%% (note: tx id is used as collision conflict resolution)
--spec(signup/2 :: (user(), pass()) -> {ok, token()} | {error, any()}).
+%% Create a new account, declare unique access and secret identity.
+%% The process derives a new certificate, stores it and return an identity token.
+%%
+%% {ok, Token} = permit:signup("joe@example.com", "secret").
+%%
+-spec create(access(), secret()) -> {ok, token()} | {error, _}.
 
-signup(User, Pass) ->
-   case 
-      permit_pubkey:create(?CONFIG_SYS, 
-         permit_pubkey:new(uri:s({urn, root, User}), Pass)
-      ) 
-   of
-      {ok, Entity} ->
-         permit_pubkey:auth(Entity, [root]);
-      {error,   _} = Error ->
-         Error
-   end.
+create(Access, Secret) ->
+   [either ||
+      permit_pubkey:new(Access, Secret),
+      permit_keyval:create(_),
+      permit_pubkey:authenticate(_, Secret, [uid])
+   ].
 
 %%
-%% validate root account credentials, return access token
--spec(signin/2 :: (user(), pass()) -> {ok, token()} | {error, any()}).
+%% Lookup an existed account, use unique access and secret to prove identity.
+%% The process validates a certificate against existed one and returns an identity token.  
+%%
+%% {ok, Token} = permit:signup("joe@example.com", "secret").
+%%
+-spec lookup(access(), secret()) -> {ok, token()} | {error, any()}.
 
-signin(User, Pass) ->
-   case 
-      permit_pubkey:lookup(?CONFIG_SYS, 
-         permit_pubkey:new(uri:s({urn, root, User}), Pass)
-      ) 
-   of
-      {ok, Entity} ->
-         permit_pubkey:auth(Entity, [root]);
-      {error,   _} = Error ->
-         Error
-   end.
+lookup(Access, Secret) ->
+   [either ||
+      permit_keyval:lookup(Access),
+      permit_pubkey:authenticate(_, Secret, [uid])
+   ].
 
 %%
-%% generate access/secret keys, associate them with root account
--spec(pubkey/1 :: (token()) -> {ok, {access(), secret()}} | {error, any()}).
+%% generate access/secret keys, associate them with master key
+-spec pubkey(token()) -> {ok, {access(), secret()}} | {error, any()}.
 
 pubkey(Token) ->
-   T = permit_token:decode(Token),
-   pubkey(permit_token:check(?CONFIG_TTL_ROOT, root, T), T).
+   [either ||
+      permit_token:check(?CONFIG_TTL_MASTER, uid, Token),
+      pubkey_access_pair(_)
+   ].
 
-pubkey(true,  #{account := Id}) ->
+pubkey_access_pair(Master) ->
    Access = permit_hash:key(?CONFIG_ACCESS),
    Secret = permit_hash:key(?CONFIG_SECRET),
-   case 
-      permit_pubkey:create(?CONFIG_SYS, 
-         permit_pubkey:new(uri:s({urn, pubkey, Access}), Secret) ++ [{<<"account">>, Id}]
-      ) 
-   of
-      {ok, _Entity} ->
-         {ok, {Access, Secret}};
-      {error,   _} = Error ->
-         Error
-   end;
-   
-pubkey(_, _) ->
-   {error, unauthorized}.
+   [either ||
+      permit_pubkey:new(Access, Secret),
+      fmap(lens:put(permit_pubkey:master(), Master, _)),
+      permit_keyval:create(_),
+      pubkey_access_pair_new(_, Access, Secret)
+   ].
+
+pubkey_access_pair_new(_, Access, Secret) ->
+   {ok, [$. ||
+      lens:put(permit_pubkey:access(), Access, #{}),
+      lens:put(permit_pubkey:secret(), Secret, _)
+   ]}.
+
 
 %%-----------------------------------------------------------------------------
 %%
@@ -105,36 +102,30 @@ pubkey(_, _) ->
 %%-----------------------------------------------------------------------------
 
 %%
-%% authorize keys, return token
--spec(auth/2 :: (access(), secret()) -> {ok, token()}). 
+%% Authenticate use unique access and secret to prove identity
+%% Returns a restricted token.
+-spec auth(access(), secret()) -> {ok, token()} | {error, _}. 
 
 auth(Access, Secret) ->
-   case 
-      permit_pubkey:lookup(?CONFIG_SYS, 
-         permit_pubkey:new(uri:s({urn, pubkey, Access}), Secret)
-      )
-   of
-      {ok, Entity} ->
-         permit_pubkey:auth(Entity, [user]);
-      {error,   _} = Error ->
-         Error
-   end.
+   auth(Access, Secret, [access]).
+
+auth(Access, Secret, Scope) ->
+   [either ||
+      permit_keyval:lookup(Access),
+      permit_pubkey:authenticate(_, Secret, Scope)
+   ].
+
 
 %%
 %% validate access token
--spec(check/1 :: (token()) -> ok | unauthorized).
--spec(check/2 :: (any(), token()) -> ok | unauthorized).
+-spec validate(token()) -> {ok, access()} | {error, unauthorized}.
+-spec validate(any(), token()) -> {ok, access()} | {error, unauthorized}.
 
-check(Token) ->
-   check(user, Token).
+validate(Token) ->
+   validate(access, Token).
 
-check(Scope, Token) ->
-   case permit_token:check(?CONFIG_TTL_USER, Scope, Token) of
-      true  ->
-         ok;
-      false ->
-         unauthorized
-   end.
+validate(Scope, Token) ->
+   permit_token:check(?CONFIG_TTL_ACCESS, Scope, Token).
 
 %%-----------------------------------------------------------------------------
 %%

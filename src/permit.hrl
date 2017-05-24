@@ -6,8 +6,8 @@
 
 %%
 %% token time to live properties
--define(CONFIG_TTL_ROOT,   3600). %%  1h
--define(CONFIG_TTL_USER,  43200). %% 12h
+-define(CONFIG_TTL_MASTER,   3600). %%  1h
+-define(CONFIG_TTL_ACCESS,  43200). %% 12h
 
 %%
 %% password derive function attributes

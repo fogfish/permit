@@ -24,7 +24,17 @@ init([]) ->
       {
          {one_for_one, 4, 1800},
          [
-            % ?CHILD(worker, permit_)
+            ?CHILD(worker, pts, spec())
          ]
       }
    }.
+
+
+spec() ->
+   [permit, 
+      [
+         immutable,
+         {factory, temporary},
+         {entity,  {pts_cache, start_link, []}}
+      ]
+   ].   

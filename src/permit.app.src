@@ -8,8 +8,7 @@
          kernel
         ,stdlib
         ,lager
-        ,thingz
-        ,memcache
+        ,pts
       ]},
       {mod, {permit_app, []}},
       {env, []}
