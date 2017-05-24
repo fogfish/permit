@@ -4,7 +4,8 @@
 
 -export([
    create/1,
-   lookup/1
+   lookup/1,
+   remove/1
 ]).
 
 
@@ -19,6 +20,11 @@ create(Entity) ->
 lookup(Access) ->
    eitherT(pts:get(permit, Access), undefined).
 
+%%
+%%
+remove(Entity) ->
+   Access = lens:get(permit_pubkey:access(), Entity),
+   pts:remove(permit, Access).
 
 
 eitherT(ok, Entity) ->

@@ -17,9 +17,12 @@
    create/2,
    lookup/2,
    pubkey/1,
+   pubkey/2,
+   revoke/1,
    auth/2,
    validate/1,
-   validate/2
+   validate/2,
+   validate/3
 ]).
 
 %%
@@ -70,11 +73,15 @@ lookup(Access, Secret) ->
 
 %%
 %% generate access/secret keys, associate them with master key
--spec pubkey(token()) -> {ok, {access(), secret()}} | {error, any()}.
+-spec pubkey(token()) -> {ok, map()} | {error, any()}.
+-spec pubkey(integer(), token()) -> {ok, map()} | {error, any()}.
 
 pubkey(Token) ->
+   pubkey(?CONFIG_TTL_MASTER, Token).
+
+pubkey(TTL, Token) ->
    [either ||
-      permit_token:check(?CONFIG_TTL_MASTER, uid, Token),
+      permit_token:check(TTL, uid, Token),
       pubkey_access_pair(_)
    ].
 
@@ -94,6 +101,15 @@ pubkey_access_pair_new(_, Access, Secret) ->
       lens:put(permit_pubkey:secret(), Secret, _)
    ]}.
 
+%%
+%% revoke certificate(s) associated with access key
+-spec revoke(access()) -> ok | {error, _}.
+
+revoke(Access) ->
+   [either ||
+      permit_keyval:lookup(Access),
+      permit_keyval:remove(_)
+   ].      
 
 %%-----------------------------------------------------------------------------
 %%
@@ -115,17 +131,20 @@ auth(Access, Secret, Scope) ->
       permit_pubkey:authenticate(_, Secret, Scope)
    ].
 
-
 %%
 %% validate access token
 -spec validate(token()) -> {ok, access()} | {error, unauthorized}.
--spec validate(any(), token()) -> {ok, access()} | {error, unauthorized}.
+-spec validate(_, token()) -> {ok, access()} | {error, unauthorized}.
+-spec validate(_, integer(), token()) -> {ok, access()} | {error, unauthorized}.
 
 validate(Token) ->
    validate(access, Token).
 
 validate(Scope, Token) ->
-   permit_token:check(?CONFIG_TTL_ACCESS, Scope, Token).
+   validate(Scope, ?CONFIG_TTL_ACCESS, Token).
+
+validate(Scope, TTL, Token) ->
+   permit_token:check(TTL, Scope, Token).
 
 %%-----------------------------------------------------------------------------
 %%
