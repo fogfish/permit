@@ -52,9 +52,9 @@ start() ->
 
 create(Access, Secret) ->
    [either ||
-      permit_pubkey:new(Access, Secret),
+      permit_pubkey:new(Access, Secret, [uid]),
       permit_keyval:create(_),
-      permit_pubkey:authenticate(_, Secret, [uid])
+      permit_pubkey:authenticate(_, Secret)
    ].
 
 %%
@@ -68,28 +68,28 @@ create(Access, Secret) ->
 lookup(Access, Secret) ->
    [either ||
       permit_keyval:lookup(Access),
-      permit_pubkey:authenticate(_, Secret, [uid])
+      permit_pubkey:authenticate(_, Secret)
    ].
 
 %%
 %% generate access/secret keys, associate them with master key
 -spec pubkey(token()) -> {ok, map()} | {error, any()}.
--spec pubkey(integer(), token()) -> {ok, map()} | {error, any()}.
+-spec pubkey(token(), [_]) -> {ok, map()} | {error, any()}.
 
 pubkey(Token) ->
-   pubkey(?CONFIG_TTL_MASTER, Token).
+   pubkey(Token, [access]).
 
-pubkey(TTL, Token) ->
+pubkey(Token, Scope) ->
    [either ||
-      permit_token:check(TTL, uid, Token),
-      pubkey_access_pair(_)
+      permit_token:check(?CONFIG_TTL_MASTER, uid, Token),
+      pubkey_access_pair(_, Scope)
    ].
 
-pubkey_access_pair(Master) ->
+pubkey_access_pair(Master, Scope) ->
    Access = permit_hash:key(?CONFIG_ACCESS),
    Secret = permit_hash:key(?CONFIG_SECRET),
    [either ||
-      permit_pubkey:new(Access, Secret),
+      permit_pubkey:new(Access, Secret, Scope),
       fmap(lens:put(permit_pubkey:master(), Master, _)),
       permit_keyval:create(_),
       pubkey_access_pair_new(_, Access, Secret)
@@ -123,12 +123,9 @@ revoke(Access) ->
 -spec auth(access(), secret()) -> {ok, token()} | {error, _}. 
 
 auth(Access, Secret) ->
-   auth(Access, Secret, [access]).
-
-auth(Access, Secret, Scope) ->
    [either ||
       permit_keyval:lookup(Access),
-      permit_pubkey:authenticate(_, Secret, Scope)
+      permit_pubkey:authenticate(_, Secret)
    ].
 
 %%

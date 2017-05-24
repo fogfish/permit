@@ -27,8 +27,8 @@ check(TTL, Scope, Token)
  when is_binary(Token) ->
    check(TTL, Scope, decode(Token));
 check(TTL, Scope, #{t := T, scope := List} = Token) ->
-   case tempus:add(os:timestamp(), TTL) of
-      X when X > T ->
+   case tempus:sub(os:timestamp(), TTL) of
+      X when X < T ->
          case lists:member(Scope, List) of
             true  -> {ok, identity(Token)};
             false -> {error, unauthorized}
