@@ -24,7 +24,7 @@ lookup(Access) ->
 %%
 remove(Entity) ->
    Access = lens:get(permit_pubkey:access(), Entity),
-   pts:remove(permit, Access).
+   pts:call(permit, Access, {ttl, 0}).
 
 
 eitherT(ok, Entity) ->
