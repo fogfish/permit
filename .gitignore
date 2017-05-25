@@ -7,12 +7,9 @@
 *.tgz
 *.pdf
 *.gz
-deps.config
-ebin/
-deps/
-log/
-.eunit/
-rebar
-.rebar/
+_build/
+rebar3
+rebar.lock
 *.sublime-*
 tests/
+
