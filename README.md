@@ -1,13 +1,4 @@
 # permit
 
-User account and tokens management library. 
+The library implements a security token management primitives.
 
-
-
-
-## Installation
-
-
-<!-- Generate DH parameters, used to derive 
-
-openssl dhparam -outform PEM 128 -->
