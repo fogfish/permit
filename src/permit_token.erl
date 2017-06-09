@@ -11,12 +11,10 @@
    decode/1
 ]).
 
-% -define(VSN,  1).
-% -define(PAD, 16).
 -define(NONE,  <<"undefined">>).
 
 %%
-%%
+%% create new token with given ttl and roles
 new(PubKey, TTL, Roles) ->
    Access = lens:get(permit_pubkey:access(), PubKey),
    Master = lens:get(permit_pubkey:master(), PubKey),
@@ -43,7 +41,7 @@ signature() -> lens:map(<<"signature">>, ?NONE).
 
 
 %%
-%%
+%% check validity of token
 check(Token, Roles)
  when is_binary(Token) ->
    check(decode(Token), Roles);
@@ -60,7 +58,7 @@ check(PubKey, Token, Roles) ->
       check_signature(PubKey, Token),
       check_roles(PubKey, _, Roles),
       check_ttl(_),
-      identity(_)
+      check_pair(_)
    ].
 
 check_signature(PubKey, Token) ->
@@ -96,13 +94,32 @@ check_roles(PubKey, Token, Roles) ->
    end.
 
 check_ttl(Token) ->
-   A = lens:get(ttl(), Token),
-   case tempus:s(os:timestamp()) of 
-      B when B < A ->
+   case 
+      lens:get(ttl(), Token) - tempus:s(os:timestamp())
+   of
+      X when X > 0 ->
          {ok, Token};
       _ ->
          {error, expired}
    end.
+
+check_pair(Token) ->
+   {ok, [$. ||
+      fmap(#{}),
+      lens:put(master(), lens:get(master(), Token), _),
+      lens:put(access(), lens:get(access(), Token), _)
+   ]}.
+
+%%
+%%
+encode(Token) ->
+   base64:encode(erlang:term_to_binary(Token)).
+
+%%
+%%
+decode(Token) ->
+   erlang:binary_to_term(base64:decode(Token)).
+
 
 %%-----------------------------------------------------------------------------
 %%
@@ -147,85 +164,3 @@ signing_key(Secret, Token) ->
 %%
 sign(Key, Data) ->
    crypto:hmac(sha256, Key, Data).
-
-
-
-
-
-
-
-% %%
-% %%
-% check(TTL, Scope, Token)
-%  when is_binary(Token) ->
-%    check(TTL, Scope, decode(Token));
-% check(TTL, Scope, #{t := T, scope := List} = Token) ->
-%    case tempus:sub(os:timestamp(), TTL) of
-%       X when X < T ->
-%          case lists:member(Scope, List) of
-%             true  -> {ok, identity(Token)};
-%             false -> {error, unauthorized}
-%          end;
-%       _ ->
-%          {error, expired}
-%    end.
-
-identity(Token) ->
-   Access = lens:get(access(), Token),
-   Master = lens:get(master(), Token),
-   {ok, [$. ||
-      lens:put(master(), Master, #{}),
-      lens:put(access(), Access, _)
-   ]}.
-
-%    case lens:get(master(), Token) of
-%       <<"undefined">> ->
-      
-%    end.
-
-% identity(#{master := undefined, access := Access}) ->
-%    Access;
-% identity(#{master := Master}) ->
-%    Master.
-
-%%
-%%
-encode(Token) ->
-   base64:encode(erlang:term_to_binary(Token)).
-%    % encode(aes, Token).
-
-% encode(aes, Token) ->
-%    SKey = base64:decode(opts:val(key, permit)),
-%    IVec = crypto:next_iv(aes_cbc, permit_hash:random(32)),
-%    Data = crypto:block_encrypt(aes_cbc, SKey, IVec, pad(erlang:term_to_binary(Token))),
-%    base64:encode(<<IVec:16/binary, Data/binary>>).
-
-%%
-%%
-decode(Token) ->
-   erlang:binary_to_term(base64:decode(Token)).
-
-%    decode(aes, base64:decode(Token)).   
-
-% decode(aes, <<IVec:16/binary, Data/binary>>) ->
-%    SKey = base64:decode(opts:val(key, permit)),
-%    <<Len:16, Text:Len/binary, _/binary>> = crypto:block_decrypt(aes_cbc, SKey, IVec, Data),
-%    erlang:binary_to_term(Text).
-
-%%-----------------------------------------------------------------------------
-%%
-%% private
-%%
-%%-----------------------------------------------------------------------------
-
-%%
-%% pad message to 16-byte blocks
-% pad(Msg) ->
-%    Len = byte_size(Msg),
-%    case (Len + 2) rem ?PAD of
-%       0 ->
-%          <<Len:16, Msg/binary>>;
-%       N ->
-%          Pad = permit_hash:random(?PAD - N),  
-%          <<Len:16, Msg/binary, Pad/binary>>
-%    end.

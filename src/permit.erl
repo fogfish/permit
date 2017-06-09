@@ -14,27 +14,31 @@
 
 -export([start/0]).
 -export([
-   create/2, create/3,
+   create/2, 
+   create/3,
    lookup/2,
    pubkey/1,
    pubkey/2,
    revoke/1,
-   auth/2,
+   auth/2, 
+   auth/3, 
+   auth/4,
    validate/1,
    validate/2
 ]).
+-export_type([access/0, secret/0, token/0, roles/0]).
 
 %%
 %% data types
--type(access() :: binary()).
--type(secret() :: binary()).
--type(token()  :: binary()).
--type(roles()  :: [binary() | atom()]).
+-type access()   :: binary().
+-type secret()   :: binary().
+-type token()    :: binary().
+-type roles()    :: [binary() | atom()].
 
 %%
 %%
 start() ->
-   applib:boot(?MODULE, code:where_is_file("app.config")).
+   applib:boot(?MODULE, []).
 
 %%-----------------------------------------------------------------------------
 %%
@@ -90,8 +94,9 @@ revoke(Access) ->
       permit_keyval:remove(_)
    ].
 
+
 %%
-%% generate access/secret keys, associate them with master key
+%% derive a new pubkey pair from master key
 -spec pubkey(token()) -> {ok, map()} | {error, any()}.
 -spec pubkey(token(), roles()) -> {ok, map()} | {error, any()}.
 
@@ -115,7 +120,7 @@ pubkey_access_pair(Identity, Roles) ->
       pubkey_access_pair_new(_, Access, Secret)
    ].
 
-pubkey_access_pair_new(_, Access, Secret) ->
+pubkey_access_pair_new(_PubKey, Access, Secret) ->
    {ok, [$. ||
       lens:put(permit_pubkey:access(), Access, #{}),
       lens:put(permit_pubkey:secret(), Secret, _)
@@ -132,18 +137,25 @@ pubkey_access_pair_new(_, Access, Secret) ->
 %% Authenticate using unique access and secret to prove identity
 %% Returns a token bounded to given roles.
 -spec auth(access(), secret()) -> {ok, token()} | {error, _}. 
--spec auth(access(), secret(), roles()) -> {ok, token()} | {error, _}. 
+-spec auth(access(), secret(), timeout()) -> {ok, token()} | {error, _}. 
+-spec auth(access(), secret(), timeout(), roles()) -> {ok, token()} | {error, _}. 
 
 auth(Access, Secret) ->
    [either ||
       permit_keyval:lookup(Access),
       permit_pubkey:authenticate(_, Secret)
    ].
-   
-auth(Access, Secret, Roles) ->
+
+auth(Access, Secret, TTL) ->
    [either ||
       permit_keyval:lookup(Access),
-      permit_pubkey:authenticate(_, Secret, Roles)
+      permit_pubkey:authenticate(_, Secret, TTL)
+   ].
+   
+auth(Access, Secret, TTL, Roles) ->
+   [either ||
+      permit_keyval:lookup(Access),
+      permit_pubkey:authenticate(_, Secret, TTL, Roles)
    ].
 
 
@@ -157,10 +169,4 @@ validate(Token) ->
 
 validate(Token, Roles) ->
    permit_token:check(Token, Roles).
-
-%%-----------------------------------------------------------------------------
-%%
-%% private
-%%
-%%-----------------------------------------------------------------------------
 
