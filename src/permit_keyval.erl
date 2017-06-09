@@ -1,5 +1,5 @@
 %% @doc
-%%   key / value interface to manage access credentials
+%%   key / value interface to manage pubkey pairs
 -module(permit_keyval).
 
 -export([
@@ -11,9 +11,9 @@
 
 %%
 %%
-create(Entity) ->
-   Access = lens:get(permit_pubkey:access(), Entity),
-   eitherT(pts:put(permit, Access, Entity), Entity).
+create(PubKey) ->
+   Access = lens:get(permit_pubkey:access(), PubKey),
+   eitherT(pts:put(permit, Access, PubKey), PubKey).
 
 %%
 %%
@@ -22,18 +22,18 @@ lookup(Access) ->
 
 %%
 %%
-remove(Entity) ->
-   Access = lens:get(permit_pubkey:access(), Entity),
+remove(PubKey) ->
+   Access = lens:get(permit_pubkey:access(), PubKey),
    pts:call(permit, Access, {ttl, 0}).
 
 
-eitherT(ok, Entity) ->
-   {ok, Entity};
+eitherT(ok, PubKey) ->
+   {ok, PubKey};
 
 eitherT({error, _} = Error, _) ->
    Error;
 
-eitherT(Entity, _) ->
-   {ok, Entity}.
+eitherT(PubKey, _) ->
+   {ok, PubKey}.
 
 

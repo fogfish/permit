@@ -5,6 +5,10 @@
 -define(CONFIG_SECRET, 30).
 
 %%
+%% version of token
+-define(VSN,  1).
+
+%%
 %% token time to live properties
 -define(CONFIG_TTL_MASTER,   3600). %%  1h
 -define(CONFIG_TTL_ACCESS,  43200). %% 12h

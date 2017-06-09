@@ -10,20 +10,22 @@
   ,secret/0
   ,master/0
   ,nonce/0
-  ,scope/0
+  ,roles/0
   ,authenticate/2
+  ,authenticate/3
 ]).
 
 
 %%
-%% create new pubkey certificate 
-new(Access, Secret, Scope) ->
+%% create new pubkey pair 
+new(Access, Secret, Roles) ->
    Nonce = permit_hash:random(?CONFIG_SALT),
    {ok, [$.||
       lens:put(access(), Access, #{}),
+      lens:put(master(), Access, _),
       lens:put(secret(), permit_hash:sign(Secret, Nonce), _),
       lens:put(nonce(), Nonce, _),
-      lens:put(scope(), Scope, _)
+      lens:put(roles(), roles(Roles), _)
    ]}.
 
 %%
@@ -32,26 +34,34 @@ access() -> lens:map(<<"access">>,  undefined).
 secret() -> lens:map(<<"secret">>,  undefined).
 master() -> lens:map(<<"master">>,  undefined).
 nonce()  -> lens:map(<<"nonce">>,   undefined).
-scope()  -> lens:map(<<"scope">>,   undefined).
+roles()  -> lens:map(<<"roles">>,   undefined).
 
 %%
-%% authenticate certificate, return a token with given scope
-authenticate(Entity, Secret) ->
-   Access = lens:get(access(), Entity), 
-   Master = lens:get(master(), Entity), 
-   Nonce  = lens:get(nonce(),  Entity),
-   Scope  = lens:get(scope(),  Entity),
-   SignA  = lens:get(secret(), Entity),
+%% authenticate pubkey pair, return a token with defined roles
+authenticate(PubKey, Secret) ->
+   authenticate(PubKey, Secret, lens:get(roles(), PubKey)).
+
+authenticate(PubKey, Secret, Roles) ->
+   Nonce  = lens:get(nonce(),  PubKey),
+   SignA  = lens:get(secret(), PubKey),
    SignB  = permit_hash:sign(Secret, Nonce),
    case permit_hash:eq(SignA, SignB) of
       true  ->
-         {ok, token(Master, Access, Scope)};
+         A = gb_sets:from_list([scalar:s(X) || X <- Roles]),
+         B = gb_sets:from_list([scalar:s(X) || X <- lens:get(permit_pubkey:roles(), PubKey)]),
+         token(PubKey, gb_sets:to_list(gb_sets:intersection(A, B)));
       false ->
-         {error, unauthorized}   
+         {error, unauthorized}
    end.
 
-token(Master, Access, Scope) ->
-   permit_token:encode(
-      permit_token:new(Master, Access, Scope)
-   ).
+token(_, []) ->
+   {error, unauthorized};
+
+token(PubKey, Roles) ->
+   {ok, permit_token:encode(
+      permit_token:new(PubKey, ?CONFIG_TTL_ACCESS, Roles)
+   )}.
+
+roles(Roles) ->
+   [scalar:s(X) || X <- Roles].
 
