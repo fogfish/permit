@@ -15,7 +15,7 @@
 ]).
 
 %% unit tests
--export([new/1]).
+-export([new/1, auth/1, unauthorized/1, scopes/1]).
 
 %%%----------------------------------------------------------------------------   
 %%%
@@ -33,7 +33,7 @@ groups() ->
       %%
       %% 
       {pubkey, [parallel], 
-         [new]}
+         [new, auth, unauthorized, scopes]}
    ].
 
 %%%----------------------------------------------------------------------------   
@@ -63,6 +63,7 @@ end_per_group(_, _Config) ->
 %%%
 %%%----------------------------------------------------------------------------   
 
+%%
 new(_Config) ->
    meck:new(permit_hash, [passthrough]),
    meck:expect(permit_hash, random, fun(N) -> erlang:iolist_to_binary(lists:duplicate(N, $x)) end),
@@ -79,5 +80,26 @@ new(_Config) ->
    Secret = lens:get(permit_pubkey:secret(), PubKey),
    [<<"a">>, <<"b">>, <<"c">>] = lens:get(permit_pubkey:roles(), PubKey).
 
-      
+
+%%
+auth(_Config) ->
+   {ok, PubKey} = permit_pubkey:new(<<"access">>, <<"secret">>, [a, b, c]),
+   {ok, _} = permit_pubkey:authenticate(PubKey, <<"secret">>),
+   {ok, _} = permit_pubkey:authenticate(PubKey, <<"secret">>, 3600),
+   {ok, _} = permit_pubkey:authenticate(PubKey, <<"secret">>, 3600, [a]),
+   {ok, _} = permit_pubkey:authenticate(PubKey, <<"secret">>, 3600, [a, b]).
+
+
+%%
+unauthorized(_Config) ->
+   {ok, PubKey} = permit_pubkey:new(<<"access">>, <<"secret">>, [a, b, c]),
+   {error, unauthorized}  = permit_pubkey:authenticate(PubKey, <<"unsecret">>).
+
+
+%%
+scopes(_Config) ->
+   {ok, PubKey} = permit_pubkey:new(<<"access">>, <<"secret">>, [a, b, c]),
+   {error, scopes}  = permit_pubkey:authenticate(PubKey, <<"secret">>, 3600, [d]),
+   {error, scopes}  = permit_pubkey:authenticate(PubKey, <<"secret">>, 3600, []).
+   
 

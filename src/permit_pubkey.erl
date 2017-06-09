@@ -77,7 +77,7 @@ auth_roles(PubKey, Roles) ->
    B = gb_sets:from_list(lens:get(permit_pubkey:roles(), PubKey)),
    case gb_sets:to_list(gb_sets:intersection(A, B)) of
       [] ->
-         {error, unauthorized};
+         {error, scopes};
       Rx ->
          {ok, Rx}
    end.
