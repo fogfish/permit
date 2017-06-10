@@ -15,7 +15,7 @@
 ]).
 
 %% unit tests
--export([new/1, auth/1, unauthorized/1, scopes/1]).
+-export([new/1, auth/1, invalid_secret/1, invalid_roles/1]).
 
 %%%----------------------------------------------------------------------------   
 %%%
@@ -33,7 +33,7 @@ groups() ->
       %%
       %% 
       {pubkey, [parallel], 
-         [new, auth, unauthorized, scopes]}
+         [new, auth, invalid_secret, invalid_roles]}
    ].
 
 %%%----------------------------------------------------------------------------   
@@ -91,13 +91,13 @@ auth(_Config) ->
 
 
 %%
-unauthorized(_Config) ->
+invalid_secret(_Config) ->
    {ok, PubKey} = permit_pubkey:new(<<"access">>, <<"secret">>, [a, b, c]),
    {error, unauthorized}  = permit_pubkey:authenticate(PubKey, <<"unsecret">>).
 
 
 %%
-scopes(_Config) ->
+invalid_roles(_Config) ->
    {ok, PubKey} = permit_pubkey:new(<<"access">>, <<"secret">>, [a, b, c]),
    {error, scopes}  = permit_pubkey:authenticate(PubKey, <<"secret">>, 3600, [d]),
    {error, scopes}  = permit_pubkey:authenticate(PubKey, <<"secret">>, 3600, []).

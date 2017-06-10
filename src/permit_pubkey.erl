@@ -6,11 +6,13 @@
 
 -export([
    new/3
+
   ,access/0
   ,secret/0
   ,master/0
   ,nonce/0
   ,roles/0
+
   ,authenticate/2
   ,authenticate/3
   ,authenticate/4
@@ -33,6 +35,9 @@ new(Access, Secret, Roles) ->
       lens:put(nonce(), Nonce, _),
       lens:put(roles(), roles(Roles), _)
    ]}.
+
+roles(Roles) ->
+   lists:usort([scalar:s(X) || X <- Roles]).
 
 
 %%
@@ -83,10 +88,7 @@ auth_roles(PubKey, Roles) ->
    end.
 
 auth_token(PubKey, TTL, Roles) ->
-   {ok, permit_token:encode(permit_token:new(PubKey, TTL, Roles))}.
-
-%%
-%%
-roles(Roles) ->
-   [scalar:s(X) || X <- Roles].
-
+   [either ||
+      permit_token:new(PubKey, TTL, Roles),
+      permit_token:encode(_)
+   ].

@@ -165,6 +165,7 @@ auth(Access, Secret, TTL, Roles) ->
 -spec validate(token(), roles()) -> {ok, map()} | {error, _}.
 
 validate(Token) ->
+   % permit_keyval:lookup(lens:get(access(), Token)),
    permit_token:check(Token, []).
 
 validate(Token, Roles) ->
