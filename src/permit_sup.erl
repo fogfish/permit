@@ -35,6 +35,6 @@ spec() ->
       [
          'read-through',
          {factory, temporary},
-         {entity,  {permit_keyval, start_link, []}}
+         {entity,  {opts:val(backend, permit_keyval, permit), start_link, []}}
       ]
    ].   
