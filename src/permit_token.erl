@@ -106,6 +106,7 @@ check_ttl(Token) ->
 check_pair(Token) ->
    {ok, [$. ||
       fmap(#{}),
+      lens:put(uid(),    lens:get(uid(), Token), _),
       lens:put(master(), lens:get(master(), Token), _),
       lens:put(access(), lens:get(access(), Token), _),
       lens:put(roles(),  lens:get(roles(), Token), _)

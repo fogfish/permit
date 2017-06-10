@@ -141,23 +141,6 @@ owner_identity(Request) ->
 
 
 %%
-%%
-% request(Type, OAuth2Request) ->
-%    [either ||
-%       fmap(binary:split(OAuth2Request, <<$&>>, [trim, global])),
-%       fmap(lists:map(fun(X) -> erlang:list_to_tuple(binary:split(X, <<$=>>)) end, _)),
-%       validate_grant_type(Type, _)
-%    ].
-
-% validate_grant_type(Type, Request) ->
-%    case lens:get(lens:pair(<<"grant_type">>), Request) of
-%       Type ->
-%          {ok, Request};
-%       _ ->
-%          {error, invalid_grant}
-%    end.
-
-%%
 %% return OAuth2 access token, uses permit token as input
 access_token(Token, TTL) ->
    {ok, #{

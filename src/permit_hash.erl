@@ -13,11 +13,7 @@
 %%
 %% generate random bytes
 random(N) ->
-   try
-      crypto:strong_rand_bytes(N)
-   catch throw:low_entropy ->
-      crypto:rand_bytes(N)
-   end.
+   crypto:strong_rand_bytes(N).
 
 %%
 %% generate random N-byte key

@@ -55,12 +55,16 @@ start() ->
 create(Access, Secret) ->
    create(Access, Secret, [uid]).
 
-create(Access, Secret, Roles) ->
+create(Access, Secret, Roles)
+ when is_binary(Access), is_binary(Secret) ->
    [either ||
-      permit_pubkey:new(scalar:s(Access), scalar:s(Secret), Roles),
+      permit_pubkey:new(Access, Secret, Roles),
       permit_keyval:create(_),
       permit_pubkey:authenticate(_, Secret)
-   ].
+   ];
+
+create(Access, Secret, Roles) ->
+   create(scalar:s(Access), scalar:s(Secret), Roles).
 
 %%
 %% Update an existed pubkey pair, use unique access to substitute secret key
@@ -175,7 +179,6 @@ token_create_new(Identity, TTL) ->
       permit_token:encode(_)
    ]. 
    
-
 %%
 %% validate access token
 -spec validate(token()) -> {ok, map()} | {error, _}.
@@ -192,4 +195,3 @@ validate(Token, Roles) ->
       fmap(lens:get(permit_pubkey:secret(), _)),
       permit_token:check(Token, _, Roles)
    ].
-

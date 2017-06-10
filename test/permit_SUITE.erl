@@ -159,11 +159,11 @@ pubkey(_Config) ->
 %%
 token(_Config) ->
    {ok, TknA} = permit:create("token@example.com", "secret", [a, b, c, d]),   
-   {ok, TknB} = permit:token(TknA, 3600, [a, d]),
+   {ok, TknB} = permit:token(TknA),
    {ok, #{
       <<"access">> := <<"token@example.com">>,
       <<"master">> := <<"token@example.com">>,
-      <<"roles">>  := [<<"a">>, <<"d">>]
+      <<"roles">>  := [<<"a">>, <<"b">>, <<"c">>, <<"d">>]
    }} = permit:validate(TknB).
 
 %%
