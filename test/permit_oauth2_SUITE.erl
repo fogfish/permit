@@ -69,7 +69,7 @@ end_per_group(_, _Config) ->
 authenticate(_Config) ->
    Access  = <<"authenticate">>,
    Secret  = <<"secret">>,
-   {ok, _} = permit:create(Access, Secret),
+   {ok, _} = permit:create(Access, Secret, [oauth2client]),
 
    Digest  = base64:encode(<<Access/binary, $:, Secret/binary>>),
    {ok, Access} = permit_oauth2:authenticate([{'Authorization', <<"Basic ", Digest/binary>>}]).
@@ -79,7 +79,7 @@ grant_client_credentials(_Config) ->
    %% register client
    Access  = <<"client_credentials">>,
    Secret  = <<"secret">>,
-   {ok, _} = permit:create(Access, Secret, [test]),
+   {ok, _} = permit:create(Access, Secret, [oauth2client]),
 
    %% request token
    Digest  = base64:encode(<<Access/binary, $:, Secret/binary>>),
@@ -95,15 +95,15 @@ grant_client_credentials(_Config) ->
    {ok, #{
       <<"access">> := Access,
       <<"master">> := Access,
-      <<"roles">>  := [<<"test">>] 
-   }} = permit:validate(Token, [test]).
+      <<"roles">>  := [<<"oauth2client">>] 
+   }} = permit:validate(Token, [oauth2client]).
 
 
 grant_owner_credentials(_Config) ->
    %% register client
    Access  = <<"clientB_credentials">>,
    Secret  = <<"secret">>,
-   {ok, _} = permit:create(Access, Secret),
+   {ok, _} = permit:create(Access, Secret, [oauth2client]),
 
    %% register owner
    Username  = <<"owner_credentials">>,

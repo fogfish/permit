@@ -48,7 +48,7 @@ authenticate(HttpHead) ->
 
 authenticate_client([Access, Secret]) ->
    [either ||
-      permit:auth(Access, Secret),
+      permit:auth(Access, Secret, 3600, [oauth2client]),
       fmap(Access)
    ].
 
@@ -83,10 +83,10 @@ issue_token(<<"authorization_code">>, _HttpHead, Request, TTL) ->
 %%      the resource owner credentials, and if valid, issues an access
 %%      token.
 %%
-issue_token(<<"password">>, HttpHead, Request, TTL) ->
+issue_token(<<"password">>, _HttpHead, Request, TTL) ->
    [either ||
       owner_identity(Request),
-      fun([Access, Secret]) -> permit:auth(Access, Secret) end,
+      fun([Access, Secret]) -> permit:auth(Access, Secret, TTL) end,
       access_token(_, TTL)   
    ];
 
@@ -102,7 +102,7 @@ issue_token(<<"password">>, HttpHead, Request, TTL) ->
 issue_token(<<"client_credentials">>, HttpHead, _Request, TTL) ->
    [either ||
       client_identity(HttpHead),
-      fun([Access, Secret]) -> permit:auth(Access, Secret) end,
+      fun([Access, Secret]) -> permit:auth(Access, Secret, TTL, [oauth2client]) end,
       access_token(_, TTL)
    ];
 
