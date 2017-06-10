@@ -121,7 +121,7 @@ issue_token(_, _, _, _) ->
 client_identity(HttpHead) ->
    case lens:get(lens:pair('Authorization', undefined), HttpHead) of
       undefined ->
-         {error, unauthorized};
+         {error, undefined};
 
       <<"Basic ", Digest/binary>> ->
          {ok, binary:split(base64:decode(Digest), <<$:>>)};
