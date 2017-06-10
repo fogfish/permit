@@ -23,6 +23,9 @@
    auth/2, 
    auth/3, 
    auth/4,
+   token/1,
+   token/2,
+   token/3,
    validate/1,
    validate/2
 ]).
@@ -39,12 +42,6 @@
 %%
 start() ->
    applib:boot(?MODULE, []).
-
-%%-----------------------------------------------------------------------------
-%%
-%% key management
-%%
-%%-----------------------------------------------------------------------------
 
 %%
 %% Create a new pubkey pair, declare unique access and secret identity.
@@ -126,13 +123,6 @@ pubkey_access_pair_new(_PubKey, Access, Secret) ->
       lens:put(permit_pubkey:secret(), Secret, _)
    ]}.
 
-
-%%-----------------------------------------------------------------------------
-%%
-%% authorization (oauth)
-%%
-%%-----------------------------------------------------------------------------
-
 %%
 %% Authenticate using unique access and secret to prove identity
 %% Returns a token bounded to given roles.
@@ -158,6 +148,33 @@ auth(Access, Secret, TTL, Roles) ->
       permit_pubkey:authenticate(_, Secret, TTL, Roles)
    ].
 
+%%
+%% derive a new token from existed one
+-spec token(token()) -> {ok, token()} | {error, _}.
+-spec token(token(), timeout()) -> {ok, token()} | {error, _}.
+-spec token(token(), timeout(), roles()) -> {ok, token()} | {error, _}.
+
+token(Token) ->
+   token(Token, ?CONFIG_TTL_ACCESS).
+
+token(Token, TTL) ->
+   token(Token, TTL, []).
+
+token(Token, TTL, Roles) ->
+   [either ||
+      validate(Token, Roles),
+      token_create_new(_, TTL)
+   ].
+
+token_create_new(Identity, TTL) ->
+   Access = lens:get(permit_pubkey:access(), Identity),
+   Roles  = lens:get(permit_pubkey:roles(), Identity),
+   [either ||
+      permit_keyval:lookup(Access),
+      permit_token:new(_, TTL, Roles),
+      permit_token:encode(_)
+   ]. 
+   
 
 %%
 %% validate access token

@@ -89,8 +89,8 @@ check_roles(Roles, Token) ->
    case check_roles_scope(lens:get(roles(), Token), Roles) of
       [] ->
          {error, scopes};
-      _  ->
-         {ok, Token}
+      Rx ->
+         {ok, lens:put(roles(), Rx, Token)}
    end.
 
 check_ttl(Token) ->

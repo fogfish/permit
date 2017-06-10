@@ -19,7 +19,8 @@
    lookup/1, lookup_notfound/1,
    revoke/1,
    auth/1, auth_invalid_secret/1, auth_invalid_roles/1,
-   pubkey/1
+   pubkey/1,
+   token/1, token_invalid_roles/1
 ]).
 
 %%%----------------------------------------------------------------------------   
@@ -39,7 +40,7 @@ groups() ->
       %% 
       {libapi, [parallel], 
          [create, create_conflict, lookup, lookup_notfound, revoke, 
-          auth, auth_invalid_secret, auth_invalid_roles, pubkey]}
+          auth, auth_invalid_secret, auth_invalid_roles, pubkey, token, token_invalid_roles]}
    ].
 
 %%%----------------------------------------------------------------------------   
@@ -53,6 +54,7 @@ init_per_suite(Config) ->
 
 
 end_per_suite(_Config) ->
+   application:stop(permit),
    ok.
 
 %% 
@@ -154,3 +156,17 @@ pubkey(_Config) ->
       <<"roles">>  := [<<"access">>]
    }} = permit:validate(Token).
 
+%%
+token(_Config) ->
+   {ok, TknA} = permit:create("token@example.com", "secret", [a, b, c, d]),   
+   {ok, TknB} = permit:token(TknA, 3600, [a, d]),
+   {ok, #{
+      <<"access">> := <<"token@example.com">>,
+      <<"master">> := <<"token@example.com">>,
+      <<"roles">>  := [<<"a">>, <<"d">>]
+   }} = permit:validate(TknB).
+
+%%
+token_invalid_roles(_Config) ->
+   {ok, TknA} = permit:create("token_roles@example.com", "secret", [a, b, c, d]),   
+   {error, scopes} = permit:token(TknA, 3600, [e]).
