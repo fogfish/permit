@@ -60,7 +60,7 @@ create(Access, Secret) ->
 
 create(Access, Secret, Roles) ->
    [either ||
-      permit_pubkey:new(Access, Secret, Roles),
+      permit_pubkey:new(scalar:s(Access), scalar:s(Secret), Roles),
       permit_keyval:create(_),
       permit_pubkey:authenticate(_, Secret)
    ].
@@ -80,8 +80,8 @@ create(Access, Secret, Roles) ->
 
 lookup(Access, Secret) ->
    [either ||
-      permit_keyval:lookup(Access),
-      permit_pubkey:authenticate(_, Secret)
+      permit_keyval:lookup(scalar:s(Access)),
+      permit_pubkey:authenticate(_, scalar:s(Secret))
    ].
 
 %%
@@ -90,7 +90,7 @@ lookup(Access, Secret) ->
 
 revoke(Access) ->
    [either ||
-      permit_keyval:lookup(Access),
+      permit_keyval:lookup(scalar:s(Access)),
       permit_keyval:remove(_)
    ].
 
@@ -105,7 +105,7 @@ pubkey(Token) ->
 
 pubkey(Token, Roles) ->
    [either ||
-      permit_token:check(Token, [uid]),
+      permit:validate(Token),
       pubkey_access_pair(_, Roles)
    ].
 
@@ -142,19 +142,19 @@ pubkey_access_pair_new(_PubKey, Access, Secret) ->
 
 auth(Access, Secret) ->
    [either ||
-      permit_keyval:lookup(Access),
+      permit_keyval:lookup(scalar:s(Access)),
       permit_pubkey:authenticate(_, Secret)
    ].
 
 auth(Access, Secret, TTL) ->
    [either ||
-      permit_keyval:lookup(Access),
+      permit_keyval:lookup(scalar:s(Access)),
       permit_pubkey:authenticate(_, Secret, TTL)
    ].
    
 auth(Access, Secret, TTL, Roles) ->
    [either ||
-      permit_keyval:lookup(Access),
+      permit_keyval:lookup(scalar:s(Access)),
       permit_pubkey:authenticate(_, Secret, TTL, Roles)
    ].
 
@@ -165,9 +165,14 @@ auth(Access, Secret, TTL, Roles) ->
 -spec validate(token(), roles()) -> {ok, map()} | {error, _}.
 
 validate(Token) ->
-   % permit_keyval:lookup(lens:get(access(), Token)),
-   permit_token:check(Token, []).
+   validate(Token, []).
 
 validate(Token, Roles) ->
-   permit_token:check(Token, Roles).
+   [either ||
+      permit_token:decode(Token),
+      fmap(lens:get(permit_token:access(), _)),
+      permit_keyval:lookup(_),
+      fmap(lens:get(permit_pubkey:secret(), _)),
+      permit_token:check(Token, _, Roles)
+   ].
 

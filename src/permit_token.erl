@@ -53,7 +53,10 @@ signature() -> lens:map(<<"signature">>, ?NONE).
 %% check validity of token
 check(Token, Secret, Roles)
  when is_binary(Token) ->
-   check(decode(Token), Secret, Roles);
+   [either ||
+      decode(Token),
+      check(_, Secret, Roles)
+   ];
 
 check(Token, Secret, Roles)
  when is_map(Token) ->
@@ -78,6 +81,9 @@ check_roles_scope(Ra, Rb) ->
    A = gb_sets:from_list(roles(Ra)),
    B = gb_sets:from_list(roles(Rb)),
    gb_sets:to_list(gb_sets:intersection(A, B)).
+
+check_roles([], Token) ->
+   {ok, Token};
 
 check_roles(Roles, Token) ->
    case check_roles_scope(lens:get(roles(), Token), Roles) of
@@ -114,7 +120,6 @@ encode(Token) ->
 %%
 decode(Token) ->
    {ok, erlang:binary_to_term(base64:decode(Token))}.
-
 
 %%-----------------------------------------------------------------------------
 %%

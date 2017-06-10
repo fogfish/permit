@@ -17,7 +17,8 @@
 %% unit tests
 -export([
    new/1, check/1, invalid_roles/1, expired_token/1, invalid_secret/1, 
-   breach_version/1, breach_uid/1, breach_roles/1, breach_ttl/1, breach_access/1, breach_master/1]).
+   breach_version/1, breach_uid/1, breach_roles/1, breach_ttl/1, breach_access/1, breach_master/1
+]).
 
 %%%----------------------------------------------------------------------------   
 %%%
