@@ -16,6 +16,8 @@
 -export([
    create/2, 
    create/3,
+   update/2,
+   update/3,
    lookup/2,
    pubkey/1,
    pubkey/2,
@@ -68,8 +70,23 @@ create(Access, Secret, Roles) ->
 
 %%
 %% Update an existed pubkey pair, use unique access to substitute secret key
-%%
+%% all allocated tokens becomes invalid
+-spec update(access(), secret()) -> {ok, token()} | {error, _}.
+-spec update(access(), secret(), roles()) -> {ok, token()} | {error, _}.
 
+update(Access, Secret) ->
+   update(Access, Secret, [uid]).
+
+update(Access, Secret, Roles)
+ when is_binary(Access), is_binary(Secret) ->
+   [either ||
+      permit_pubkey:new(Access, Secret, Roles),
+      permit_keyval:update(_),
+      permit_pubkey:authenticate(_, Secret)
+   ];
+
+update(Access, Secret, Roles) ->
+   update(scalar:s(Access), scalar:s(Secret), Roles).
 
 %%
 %% Lookup an existed pubkey pair, use unique access and secret to prove identity.
@@ -87,7 +104,7 @@ lookup(Access, Secret) ->
 
 %%
 %% revoke pubkey pair associated with access key
--spec revoke(access()) -> ok | {error, _}.
+-spec revoke(access()) -> {ok, _} | {error, _}.
 
 revoke(Access) ->
    [either ||

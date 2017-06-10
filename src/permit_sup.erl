@@ -33,8 +33,8 @@ init([]) ->
 spec() ->
    [permit, 
       [
-         immutable,
+         'read-through',
          {factory, temporary},
-         {entity,  {pts_cache, start_link, []}}
+         {entity,  {permit_keyval, start_link, []}}
       ]
    ].   

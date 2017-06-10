@@ -16,6 +16,7 @@
 %% unit tests
 -export([
    create/1, create_conflict/1,
+   update/1, update_notfound/1,
    lookup/1, lookup_notfound/1,
    revoke/1,
    auth/1, auth_invalid_secret/1, auth_invalid_roles/1,
@@ -39,7 +40,7 @@ groups() ->
       %%
       %% 
       {libapi, [parallel], 
-         [create, create_conflict, lookup, lookup_notfound, revoke, 
+         [create, create_conflict, update, update_notfound, lookup, lookup_notfound, revoke, 
           auth, auth_invalid_secret, auth_invalid_roles, pubkey, token, token_invalid_roles]}
    ].
 
@@ -82,8 +83,28 @@ create(_Config) ->
 
 %%
 create_conflict(_Config) ->
-   {ok, Token} = permit:create("conflict@example.com", "secret"),
+   {ok,_Token} = permit:create("conflict@example.com", "secret"),
    {error,  _} = permit:create("conflict@example.com", "secret").
+
+%%
+update(_Config) ->
+   {ok, TokenA} = permit:create("update@example.com", "secret"),
+   {ok, #{
+      <<"access">> := <<"update@example.com">>, 
+      <<"master">> := <<"update@example.com">>, 
+      <<"roles">>  := [<<"uid">>]
+   }} = permit:validate(TokenA),
+
+   {ok, TokenB} = permit:update("update@example.com", "newsecret"),
+   {ok, #{
+      <<"access">> := <<"update@example.com">>, 
+      <<"master">> := <<"update@example.com">>, 
+      <<"roles">>  := [<<"uid">>]
+   }} = permit:validate(TokenB),
+   {error, unauthorized} =  permit:validate(TokenA).
+
+update_notfound(_Config) ->
+   {error, not_found} = permit:update("not_found@example.com", "secret").
 
 %%
 lookup(_Config) ->
@@ -103,7 +124,7 @@ lookup_notfound(_Config) ->
 revoke(_Config) ->
    {ok, Token} = permit:create("revoke@example.com", "secret"),
    {ok, _} = permit:validate(Token),
-   ok = permit:revoke("revoke@example.com"),
+   {ok, _} = permit:revoke("revoke@example.com"),
    {error, not_found} = permit:validate(Token).   
 
 %%
