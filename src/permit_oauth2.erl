@@ -85,8 +85,6 @@ issue_token(<<"authorization_code">>, _HttpHead, Request, TTL) ->
 %%
 issue_token(<<"password">>, HttpHead, Request, TTL) ->
    [either ||
-      client_identity(HttpHead),
-      fun([Access, Secret]) -> permit:auth(Access, Secret) end,
       owner_identity(Request),
       fun([Access, Secret]) -> permit:auth(Access, Secret) end,
       access_token(_, TTL)   
