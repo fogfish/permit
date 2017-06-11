@@ -37,7 +37,6 @@ lookup(Access) ->
 remove(PubKey) ->
    Access = lens:get(permit_pubkey:access(), PubKey),
    pts:remove(permit, Access).
-   % pts:call(permit, Access, {remove, Access}).
 
 %%-----------------------------------------------------------------------------
 %%
