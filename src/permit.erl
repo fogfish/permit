@@ -25,6 +25,7 @@
    auth/2, 
    auth/3, 
    auth/4,
+   code/2,
    token/1,
    token/2,
    token/3,
@@ -167,6 +168,16 @@ auth(Access, Secret, TTL, Roles) ->
    [either ||
       permit_keyval:lookup(scalar:s(Access)),
       permit_pubkey:authenticate(_, Secret, TTL, Roles)
+   ].
+
+%%
+%% create access token for password-less identity
+-spec code(access(), timeout()) -> {ok, token()} | {error, _}. 
+
+code(Access, TTL) ->
+   [either ||
+      permit_keyval:lookup(scalar:s(Access)),
+      token_create_new(_, TTL)
    ].
 
 %%
