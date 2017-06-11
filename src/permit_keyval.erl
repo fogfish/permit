@@ -7,7 +7,7 @@
 -export([create/1, update/1, lookup/1, remove/1]).
 
 %% 
--export([start_link/2, init/1, free/2, handle/3]).
+-export([start_link/2, init/1, free/2, none/3, pair/3]).
 
 %%-----------------------------------------------------------------------------
 %%
@@ -50,43 +50,42 @@ start_link(Ns, Access) ->
 
 init([Ns, Access]) ->
    pns:register(Ns, Access, self()),
-   {ok, handle, undefined}.
+   {ok, none, undefined}.
 
 free(_, _PubKey) ->
    ok.
 
 %%
-handle({put, _Access, PubKey}, Pipe, undefined) ->
+none({put, _Access, PubKey}, Pipe, _) ->
    pipe:ack(Pipe, {ok, PubKey}),
-   {next_state, handle, PubKey};
+   {next_state, pair, PubKey};
 
-handle({put, _Access, _PubKey}, Pipe, PubKey) ->
+none({update, _Access, _PubKey}, Pipe, State) ->
+   pipe:ack(Pipe, {error, not_found}),
+   {stop, normal, State};
+
+none({get, _Access}, Pipe, State) ->
+   pipe:ack(Pipe, {error, not_found}),
+   {stop, normal, State};
+
+none({remove, _Access}, Pipe, State) ->
+   pipe:ack(Pipe, {error, not_found}),
+   {stop, normal, State}.
+
+%%
+pair({put, _Access, _PubKey}, Pipe, PubKey) ->
    pipe:ack(Pipe, {error, conflict}),
-   {next_state, handle, PubKey};
+   {next_state, pair, PubKey};
 
-%%
-handle({update, _Access, _PubKey}, Pipe, undefined) ->
-   pipe:ack(Pipe, {error, not_found}),
-   {stop, normal, undefined};
-
-handle({update, _Access, PubKey}, Pipe, _) ->
+pair({update, _Access, PubKey}, Pipe, _) ->
    pipe:ack(Pipe, {ok, PubKey}),
-   {next_state, handle, PubKey};
+   {next_state, pair, PubKey};
 
-%%
-handle({get, _Access}, Pipe, undefined) ->
-   pipe:ack(Pipe, {error, not_found}),
-   {stop, normal, undefined};
-
-handle({get, _Access}, Pipe, PubKey) ->
+pair({get, _Access}, Pipe, PubKey) ->
    pipe:ack(Pipe, {ok, PubKey}),
-   {next_state, handle, PubKey};
+   {next_state, pair, PubKey};
 
-%%
-handle({remove, _Access}, Pipe, undefined) ->
-   pipe:ack(Pipe, {error, not_found}),
-   {stop, normal, undefined};
-
-handle({remove, _Access}, Pipe, PubKey) ->
+pair({remove, _Access}, Pipe, PubKey) ->
    pipe:ack(Pipe, {ok, PubKey}),
    {stop, normal, PubKey}.
+
