@@ -30,7 +30,7 @@ new(Access, Secret, Roles) ->
    Nonce = permit_hash:random(?CONFIG_SALT),
    {ok, [$.||
       lens:put(access(), Access, #{}),
-      lens:put(master(), Access, _),
+      % lens:put(master(), Access, _),
       lens:put(secret(), permit_hash:sign(Secret, Nonce), _),
       lens:put(nonce(), Nonce, _),
       lens:put(roles(), roles(Roles), _)

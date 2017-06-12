@@ -77,7 +77,6 @@ create(_Config) ->
    {ok, Token} = permit:create("create@example.com", "secret"),
    {ok, #{
       <<"access">> := <<"create@example.com">>, 
-      <<"master">> := <<"create@example.com">>, 
       <<"roles">>  := [<<"uid">>]
    }} = permit:validate(Token).
 
@@ -91,14 +90,12 @@ update(_Config) ->
    {ok, TokenA} = permit:create("update@example.com", "secret"),
    {ok, #{
       <<"access">> := <<"update@example.com">>, 
-      <<"master">> := <<"update@example.com">>, 
       <<"roles">>  := [<<"uid">>]
    }} = permit:validate(TokenA),
 
    {ok, TokenB} = permit:update("update@example.com", "newsecret"),
    {ok, #{
       <<"access">> := <<"update@example.com">>, 
-      <<"master">> := <<"update@example.com">>, 
       <<"roles">>  := [<<"uid">>]
    }} = permit:validate(TokenB),
    {error, unauthorized} =  permit:validate(TokenA).
@@ -112,7 +109,6 @@ lookup(_Config) ->
    {ok, Token} = permit:lookup("lookup@example.com", "secret"),
    {ok, #{
       <<"access">> := <<"lookup@example.com">>, 
-      <<"master">> := <<"lookup@example.com">>, 
       <<"roles">>  := [<<"uid">>]
    }} = permit:validate(Token).
 
@@ -134,21 +130,18 @@ auth(_Config) ->
    {ok, TknA} = permit:auth("auth@example.com", "secret"),
    {ok, #{
       <<"access">> := <<"auth@example.com">>, 
-      <<"master">> := <<"auth@example.com">>, 
       <<"roles">>  := [<<"a">>, <<"b">>, <<"c">>, <<"d">>]
    }} = permit:validate(TknA),
 
    {ok, TknB} = permit:auth("auth@example.com", "secret", 3600),
    {ok, #{
       <<"access">> := <<"auth@example.com">>, 
-      <<"master">> := <<"auth@example.com">>, 
       <<"roles">>  := [<<"a">>, <<"b">>, <<"c">>, <<"d">>]
    }} = permit:validate(TknB),
 
    {ok, TknC} = permit:auth("auth@example.com", "secret", 3600, [a, d]),
    {ok, #{
       <<"access">> := <<"auth@example.com">>, 
-      <<"master">> := <<"auth@example.com">>, 
       <<"roles">>  := [<<"a">>, <<"d">>]
    }} = permit:validate(TknC).
 
@@ -183,7 +176,6 @@ token(_Config) ->
    {ok, TknB} = permit:token(TknA),
    {ok, #{
       <<"access">> := <<"token@example.com">>,
-      <<"master">> := <<"token@example.com">>,
       <<"roles">>  := [<<"a">>, <<"b">>, <<"c">>, <<"d">>]
    }} = permit:validate(TknB).
 

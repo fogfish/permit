@@ -101,9 +101,12 @@ check_ttl(Token) ->
    end.
 
 check_return_identity(Token) ->
+   Seed = case lens:get(master(), Token) of
+      undefined -> #{};
+      Master    -> lens:put(master(), Master, #{})
+   end,
    {ok, [$. ||
-      fmap(#{}),
-      lens:put(master(), lens:get(master(), Token), _),
+      fmap(Seed),
       lens:put(access(), lens:get(access(), Token), _),
       lens:put(roles(),  lens:get(roles(), Token), _)
    ]}.
@@ -148,7 +151,6 @@ signature(Secret, Token) ->
 signing_key(Secret, Token) ->
    [$. ||
       sign(Secret, scalar:s(lens:get(ttl(), Token))),
-      sign(_,      scalar:s(lens:get(master(), Token))),
       sign(_,     <<"permit_token">>)
    ].
 

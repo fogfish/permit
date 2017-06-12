@@ -91,7 +91,7 @@ new(_Config) ->
    Access = lens:get(permit_token:access(), Token),
    Master = lens:get(permit_pubkey:master(), PubKey),
    Master = lens:get(permit_token:master(), Token),
-   <<"75b330a268496766fb1518e7dcf1182d81ff3c40353cd421f0393626bb4b33c0">> = lens:get(permit_token:signature(), Token).
+   <<"6c768c062736daa59169c3159f765aefb084c5f58994056cd458a49f8f9c1fae">> = lens:get(permit_token:signature(), Token).
 
 %%   
 check(_Config) ->
@@ -99,11 +99,9 @@ check(_Config) ->
    {ok, Token}  = permit_token:new(PubKey, 3600, [d]),
 
    Access = lens:get(permit_pubkey:access(), PubKey),
-   Master = lens:get(permit_pubkey:master(), PubKey),
    Secret = lens:get(permit_pubkey:secret(), PubKey),
    {ok, #{
       <<"access">> := Access,
-      <<"master">> := Master,
       <<"roles">>  := [<<"d">>]
    }} = permit_token:check(Token, Secret, [d]).
 

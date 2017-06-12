@@ -73,7 +73,7 @@ new(_Config) ->
    meck:unload(permit_hash),
    
    <<"access">> = lens:get(permit_pubkey:access(), PubKey),
-   <<"access">> = lens:get(permit_pubkey:master(), PubKey),
+   undefined = lens:get(permit_pubkey:master(), PubKey),
    Nonce  = erlang:iolist_to_binary(lists:duplicate(?CONFIG_SALT, $x)),
    Nonce  = lens:get(permit_pubkey:nonce(), PubKey),
    Secret = permit_hash:sign(<<"secret">>, Nonce),

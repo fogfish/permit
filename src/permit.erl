@@ -129,7 +129,7 @@ pubkey(Token, Roles) ->
    ].
 
 pubkey_access_pair(Identity, Roles) ->
-   Master = lens:get(permit_pubkey:master(), Identity),
+   Master = lens:get(permit_pubkey:access(), Identity),
    Access = permit_hash:key(?CONFIG_ACCESS),
    Secret = permit_hash:key(?CONFIG_SECRET),
    [either ||

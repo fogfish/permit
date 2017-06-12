@@ -94,7 +94,6 @@ grant_client_credentials(_Config) ->
    %% validate token
    {ok, #{
       <<"access">> := Access,
-      <<"master">> := Access,
       <<"roles">>  := [<<"oauth2client">>] 
    }} = permit:validate(Token, [oauth2client]).
 
@@ -123,7 +122,6 @@ grant_owner_credentials(_Config) ->
    %% validate token
    {ok, #{
       <<"access">> := Username,
-      <<"master">> := Username,
       <<"roles">>  := [<<"test">>] 
    }} = permit:validate(Token, [test]).
 
@@ -144,6 +142,5 @@ grant_authorization_code(_Config) ->
    %% validate token
    {ok, #{
       <<"access">> := Access,
-      <<"master">> := Access,
       <<"roles">>  := [<<"test">>] 
    }} = permit:validate(Token, [test]).
