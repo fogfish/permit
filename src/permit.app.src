@@ -7,7 +7,6 @@
       {applications,[
          kernel
         ,stdlib
-        ,uid
         ,pts
       ]},
       {mod, {permit_app, []}},

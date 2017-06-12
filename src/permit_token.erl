@@ -7,7 +7,6 @@
 -export([
    new/3,
 
-   uid/0,
    ttl/0,
    roles/0,
    master/0,
@@ -30,7 +29,6 @@ new(PubKey, TTL, Roles) ->
    Secret = lens:get(permit_pubkey:secret(), PubKey),
    {ok, [$. ||
       lens:put(version(), ?VSN, #{}),
-      lens:put(uid(), identity(), _),
       lens:put(ttl(), expired(TTL),  _),
       lens:put(access(), Access,  _),
       lens:put(master(), Master, _),
@@ -40,7 +38,6 @@ new(PubKey, TTL, Roles) ->
 
 %%
 %% token attributes
-uid()     -> lens:map(<<"uid">>, ?NONE).
 ttl()     -> lens:map(<<"ttl">>, ?NONE).
 roles()   -> lens:map(<<"roles">>, []).
 master()  -> lens:map(<<"master">>, ?NONE).
@@ -64,7 +61,7 @@ check(Token, Secret, Roles)
       check_signature(Secret, Token),
       check_roles(Roles, _),
       check_ttl(_),
-      check_pair(_)
+      check_return_identity(_)
    ].
 
 check_signature(Secret, Token) ->
@@ -103,10 +100,9 @@ check_ttl(Token) ->
          {error, expired}
    end.
 
-check_pair(Token) ->
+check_return_identity(Token) ->
    {ok, [$. ||
       fmap(#{}),
-      lens:put(uid(),    lens:get(uid(), Token), _),
       lens:put(master(), lens:get(master(), Token), _),
       lens:put(access(), lens:get(access(), Token), _),
       lens:put(roles(),  lens:get(roles(), Token), _)
@@ -128,9 +124,6 @@ decode(Token) ->
 %%
 %%-----------------------------------------------------------------------------
 
-%%
-identity() ->
-   << <<X:8>> || <<X:8>> <= base64:encode(uid:encode(uid:g())), X =/= $= >>.
 
 %%
 expired(TTL) ->
@@ -144,7 +137,6 @@ roles(Roles) ->
 signature(Secret, Token) ->
    ToSign = lists:join(<<$\n>>, [
       scalar:s(lens:get(version(), Token)),
-      scalar:s(lens:get(uid(), Token)),
       scalar:s(lens:get(ttl(), Token)),
       scalar:s(lens:get(access(), Token)),
       scalar:s(lens:get(master(), Token)),
@@ -156,7 +148,6 @@ signature(Secret, Token) ->
 signing_key(Secret, Token) ->
    [$. ||
       sign(Secret, scalar:s(lens:get(ttl(), Token))),
-      sign(_,      scalar:s(lens:get(uid(), Token))),
       sign(_,      scalar:s(lens:get(master(), Token))),
       sign(_,     <<"permit_token">>)
    ].
