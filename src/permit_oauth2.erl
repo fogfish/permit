@@ -8,8 +8,6 @@
    decode/1,
    authenticate/1,
    issue_token/3
-   % request/2,
-   % access_token/1
 ]).
 
 %%
@@ -20,7 +18,8 @@
 decode(Request) ->
    [$. ||
       binary:split(scalar:s(Request), <<$&>>, [trim, global]),
-      lists:map(fun as_pair/1, _)
+      lists:map(fun as_pair/1, _),
+      maps:from_list(_)
    ].
 
 as_pair(Pair) ->
@@ -55,16 +54,14 @@ authenticate_client([Access, Secret]) ->
 %%
 %% issue token, exchange authentication grant for the token
 issue_token(HttpHead, Request, TTL) ->
-   Pairs = decode(Request),
-   Grant = lens:get(lens:pair(<<"grant_type">>), Pairs),
-   issue_token(Grant, HttpHead, Pairs, TTL).
+   #{<<"grant_type">> := Grant} = Req = decode(Request),
+   issue_token(Grant, HttpHead, Req, TTL).
 
 %%
 %% 
-issue_token(<<"authorization_code">>, _HttpHead, Request, TTL) ->
+issue_token(<<"authorization_code">>, _HttpHead, #{<<"code">> := Code}, TTL) ->
    [either ||
-      fmap(lens:get(lens:pair(<<"code">>), Request)),
-      permit:validate(_),
+      permit:validate(Code),
       fmap(lens:get(lens:map(<<"sub">>), _)),
       permit:issue(_, TTL),
       access_token(_, TTL)
@@ -85,10 +82,9 @@ issue_token(<<"authorization_code">>, _HttpHead, Request, TTL) ->
 %%      the resource owner credentials, and if valid, issues an access
 %%      token.
 %%
-issue_token(<<"password">>, _HttpHead, Request, TTL) ->
+issue_token(<<"password">>, _HttpHead, #{<<"username">> := Access, <<"password">> := Secret}, TTL) ->
    [either ||
-      owner_identity(Request),
-      fun([Access, Secret]) -> permit:auth(Access, Secret, TTL) end,
+      permit:auth(Access, Secret, TTL),
       access_token(_, TTL)   
    ];
 
@@ -131,14 +127,6 @@ client_identity(HttpHead) ->
       _ ->
          {error, not_supported}      
    end.     
-
-%%
-%%
-owner_identity(Request) ->
-   Access = lens:get(lens:pair(<<"username">>), Request),
-   Secret = lens:get(lens:pair(<<"password">>), Request),
-   {ok, [Access, Secret]}.
-
 
 %%
 %% return OAuth2 access token, uses permit token as input
