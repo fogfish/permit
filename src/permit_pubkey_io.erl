@@ -1,6 +1,6 @@
 %% @doc
-%%   key / value interface to manage pubkey pairs
--module(permit_keyval).
+%%   public / private key pair i/o
+-module(permit_pubkey_io).
 -behaviour(pipe).
 
 %% key-value api

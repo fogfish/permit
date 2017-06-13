@@ -59,7 +59,7 @@ create(Access, Secret, Roles)
  when is_binary(Access), is_binary(Secret) ->
    [either ||
       permit_pubkey:new(Access, Secret, Roles),
-      permit_keyval:create(_),
+      permit_pubkey_io:create(_),
       permit_pubkey:authenticate(_, Secret)
    ];
 
@@ -79,7 +79,7 @@ update(Access, Secret, Roles)
  when is_binary(Access), is_binary(Secret) ->
    [either ||
       permit_pubkey:new(Access, Secret, Roles),
-      permit_keyval:update(_),
+      permit_pubkey_io:update(_),
       permit_pubkey:authenticate(_, Secret)
    ];
 
@@ -96,7 +96,7 @@ update(Access, Secret, Roles) ->
 
 lookup(Access, Secret) ->
    [either ||
-      permit_keyval:lookup(scalar:s(Access)),
+      permit_pubkey_io:lookup(scalar:s(Access)),
       permit_pubkey:authenticate(_, scalar:s(Secret))
    ].
 
@@ -106,8 +106,8 @@ lookup(Access, Secret) ->
 
 revoke(Access) ->
    [either ||
-      permit_keyval:lookup(scalar:s(Access)),
-      permit_keyval:remove(_)
+      permit_pubkey_io:lookup(scalar:s(Access)),
+      permit_pubkey_io:remove(_)
    ].
 
 
@@ -131,7 +131,7 @@ pubkey_access_pair(#{<<"sub">> := Master}, Roles) ->
    [either ||
       permit_pubkey:new(Access, Secret, Roles),
       fmap(lens:put(permit_pubkey:master(), Master, _)),
-      permit_keyval:create(_),
+      permit_pubkey_io:create(_),
       pubkey_access_pair_new(_, Access, Secret)
    ].
 
@@ -150,19 +150,19 @@ pubkey_access_pair_new(_PubKey, Access, Secret) ->
 
 auth(Access, Secret) ->
    [either ||
-      permit_keyval:lookup(scalar:s(Access)),
+      permit_pubkey_io:lookup(scalar:s(Access)),
       permit_pubkey:authenticate(_, Secret)
    ].
 
 auth(Access, Secret, TTL) ->
    [either ||
-      permit_keyval:lookup(scalar:s(Access)),
+      permit_pubkey_io:lookup(scalar:s(Access)),
       permit_pubkey:authenticate(_, Secret, TTL)
    ].
    
 auth(Access, Secret, TTL, Roles) ->
    [either ||
-      permit_keyval:lookup(scalar:s(Access)),
+      permit_pubkey_io:lookup(scalar:s(Access)),
       permit_pubkey:authenticate(_, Secret, TTL, Roles)
    ].
 
@@ -173,13 +173,13 @@ auth(Access, Secret, TTL, Roles) ->
 
 issue(Access, TTL) ->
    [either ||
-      permit_keyval:lookup(scalar:s(Access)),
+      permit_pubkey_io:lookup(scalar:s(Access)),
       permit_token:new(_, TTL)
    ].
 
 issue(Access, TTL, Roles) ->
    [either ||
-      permit_keyval:lookup(scalar:s(Access)),
+      permit_pubkey_io:lookup(scalar:s(Access)),
       permit_token:new(_, TTL, Roles)
    ].
    
@@ -191,7 +191,7 @@ validate(Token) ->
    [either ||
       jwt:decode(Token, scalar:s(opts:val(secret, permit))),
       fmap(lens:get(lens:map(<<"sub">>), _)),
-      permit_keyval:lookup(_),
+      permit_pubkey_io:lookup(_),
       fmap(lens:get(permit_pubkey:secret(), _)),
       permit_token:check(Token, _)
    ].

@@ -1,5 +1,5 @@
 %% @doc
-%%    public / private key pair management 
+%%    public / private key pair data type 
 -module(permit_pubkey).
 -include("permit.hrl").
 -compile({parse_transform, category}).
