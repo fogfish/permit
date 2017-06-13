@@ -1,6 +1,6 @@
 # permit
 
-The library implements a high-level api for secrets and tokens management. The library do not attempt to implement own crypto, instead it is heavily depends on external low-level crypto primitives, making them usable through simple use-case oriented api calls.
+The library implements a high-level api for security tokens management. The library do not attempt to implement own crypto, instead it is heavily depends on external low-level crypto primitives, making them usable through simple use-case oriented api calls.
 
 [![Build Status](https://secure.travis-ci.org/fogfish/permit.svg?branch=master)](http://travis-ci.org/fogfish/permit)
 
