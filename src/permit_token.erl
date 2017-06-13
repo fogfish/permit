@@ -5,121 +5,72 @@
 -compile({parse_transform, category}).
 
 -export([
+   new/2,
    new/3,
-
-   ttl/0,
-   roles/0,
-   master/0,
-   access/0,
-   version/0,
-   signature/0,
-
-   check/3,
-   encode/1,
-   decode/1
+   check/2
 ]).
 
--define(NONE,  <<"undefined">>).
+-define(ALG,   <<"HS256">>).
 
 %%
 %% create new token with given ttl and roles
-new(PubKey, TTL, Roles) ->
-   Access = lens:get(permit_pubkey:access(), PubKey),
-   Master = lens:get(permit_pubkey:master(), PubKey),
-   Secret = lens:get(permit_pubkey:secret(), PubKey),
-   {ok, [$. ||
-      lens:put(version(), ?VSN, #{}),
-      lens:put(ttl(), expired(TTL),  _),
-      lens:put(access(), Access,  _),
-      lens:put(master(), Master, _),
-      lens:put(roles(), roles(Roles), _),
-      signature(Secret, _)
-   ]}.
+new(PubKey, TTL) ->
+   new(PubKey, TTL, lens:get(permit_pubkey:roles(), PubKey)).
 
-%%
-%% token attributes
-ttl()     -> lens:map(<<"ttl">>, ?NONE).
-roles()   -> lens:map(<<"roles">>, []).
-master()  -> lens:map(<<"master">>, ?NONE).
-access()  -> lens:map(<<"access">>, ?NONE).
-version() -> lens:map(<<"version">>, ?NONE).
-signature() -> lens:map(<<"signature">>, ?NONE).
+new(PubKey, TTL, Roles) ->
+   Sub = lens:get(permit_pubkey:access(), PubKey),
+   [either ||
+      acl(PubKey, TTL, Roles),
+      jwt:encode(
+         ?ALG,
+         #{
+            sub => Sub,
+            acl => _
+         },
+         TTL,
+         secret()
+      )
+   ].
+
+acl(PubKey, TTL, Roles) ->
+   [either ||
+      eitherT(permit_pubkey:acl(PubKey, Roles)),
+      build_acl(PubKey, _),
+      jwt:encode(?ALG, _, TTL, lens:get(permit_pubkey:secret(), PubKey))
+   ].
+
+build_acl(PubKey, List) ->
+   Acl0 = maps:from_list([{X, true} || X <- List]),
+   Acl1 = Acl0#{
+      tji => base64url:encode(uid:encode(uid:g())),
+      iss => scalar:s(opts:val(issuer, permit)),
+      sub => lens:get(permit_pubkey:access(), PubKey)
+   },
+   case lens:get(permit_pubkey:master(), PubKey) of
+      undefined ->
+         {ok, Acl1};
+      Master ->
+         {ok, Acl1#{master => Master}}
+   end.
+
+eitherT([]) -> {error, invalid_roles};
+eitherT(Xs) -> {ok, Xs}.
 
 
 %%
 %% check validity of token
-check(Token, Secret, Roles)
- when is_binary(Token) ->
+check(Token, Secret) ->
    [either ||
-      decode(Token),
-      check(_, Secret, Roles)
-   ];
-
-check(Token, Secret, Roles)
- when is_map(Token) ->
-   [either ||
-      check_signature(Secret, Token),
-      check_roles(Roles, _),
-      check_ttl(_),
-      check_return_identity(_)
+      jwt:decode(Token, secret()),
+      decode_acl(_, Secret)
    ].
 
-check_signature(Secret, Token) ->
-   SignTa = lens:get(signature(), Token),
-   SignTb = lens:get(signature(), signature(Secret, Token)),
-   case permit_hash:eq(SignTa, SignTb) of
-      true  ->
-         {ok, Token};
-      false ->
-         {error, unauthorized}
-   end. 
+decode_acl(Token, Secret) ->
+   [either ||
+      fmap(lens:get(lens:map(<<"acl">>), Token)),
+      jwt:decode(_, Secret)
+   ].
 
-check_roles_scope(Ra, Rb) ->
-   A = gb_sets:from_list(roles(Ra)),
-   B = gb_sets:from_list(roles(Rb)),
-   gb_sets:to_list(gb_sets:intersection(A, B)).
-
-check_roles([], Token) ->
-   {ok, Token};
-
-check_roles(Roles, Token) ->
-   case check_roles_scope(lens:get(roles(), Token), Roles) of
-      [] ->
-         {error, scopes};
-      Rx ->
-         {ok, lens:put(roles(), Rx, Token)}
-   end.
-
-check_ttl(Token) ->
-   case 
-      lens:get(ttl(), Token) - tempus:s()
-   of
-      X when X > 0 ->
-         {ok, Token};
-      _ ->
-         {error, expired}
-   end.
-
-check_return_identity(Token) ->
-   Seed = case lens:get(master(), Token) of
-      undefined -> #{};
-      Master    -> lens:put(master(), Master, #{})
-   end,
-   {ok, [$. ||
-      fmap(Seed),
-      lens:put(access(), lens:get(access(), Token), _),
-      lens:put(roles(),  lens:get(roles(), Token), _)
-   ]}.
-
-%%
-%%
-encode(Token) ->
-   {ok, base64:encode(erlang:term_to_binary(Token))}.
-
-%%
-%%
-decode(Token) ->
-   {ok, erlang:binary_to_term(base64:decode(Token))}.
 
 %%-----------------------------------------------------------------------------
 %%
@@ -127,36 +78,5 @@ decode(Token) ->
 %%
 %%-----------------------------------------------------------------------------
 
-
-%%
-expired(TTL) ->
-   tempus:s() + TTL.
-
-%%
-roles(Roles) ->
-   lists:usort([scalar:s(X) || X <- Roles]).
-
-%%
-signature(Secret, Token) ->
-   ToSign = lists:join(<<$\n>>, [
-      scalar:s(lens:get(version(), Token)),
-      scalar:s(lens:get(ttl(), Token)),
-      scalar:s(lens:get(access(), Token)),
-      scalar:s(lens:get(master(), Token)),
-      scalar:s(lists:join(<<$ >>, lens:get(roles(), Token)))
-   ]),
-   Signature = bits:btoh(sign(signing_key(Secret, Token), ToSign)),
-   lens:put(signature(), Signature, Token).
-
-signing_key(Secret, Token) ->
-   [$. ||
-      sign(Secret, scalar:s(lens:get(ttl(), Token))),
-      sign(_,     <<"permit_token">>)
-   ].
-
-%%
-%%
-sign(Key, Data) ->
-   crypto:hmac(sha256, Key, Data).
-
-
+secret() ->
+   scalar:s(opts:val(secret, permit)).

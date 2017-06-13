@@ -64,7 +64,9 @@ issue_token(HttpHead, Request, TTL) ->
 issue_token(<<"authorization_code">>, _HttpHead, Request, TTL) ->
    [either ||
       fmap(lens:get(lens:pair(<<"code">>), Request)),
-      permit:token(_, TTL),
+      permit:validate(_),
+      fmap(lens:get(lens:map(<<"sub">>), _)),
+      permit:issue(_, TTL),
       access_token(_, TTL)
    ];
 

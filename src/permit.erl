@@ -25,12 +25,9 @@
    auth/2, 
    auth/3, 
    auth/4,
-   code/2,
-   token/1,
-   token/2,
-   token/3,
-   validate/1,
-   validate/2
+   issue/2,
+   issue/3,
+   validate/1
 ]).
 -export_type([access/0, secret/0, token/0, roles/0]).
 
@@ -44,7 +41,7 @@
 %%
 %%
 start() ->
-   applib:boot(?MODULE, []).
+   applib:boot(?MODULE, code:where_is_file("app.config")).
 
 %%
 %% Create a new pubkey pair, declare unique access and secret identity.
@@ -128,8 +125,7 @@ pubkey(Token, Roles) ->
       pubkey_access_pair(_, Roles)
    ].
 
-pubkey_access_pair(Identity, Roles) ->
-   Master = lens:get(permit_pubkey:access(), Identity),
+pubkey_access_pair(#{<<"sub">> := Master}, Roles) ->
    Access = permit_hash:key(?CONFIG_ACCESS),
    Secret = permit_hash:key(?CONFIG_SECRET),
    [either ||
@@ -171,55 +167,31 @@ auth(Access, Secret, TTL, Roles) ->
    ].
 
 %%
-%% create access token for password-less identity
--spec code(access(), timeout()) -> {ok, token()} | {error, _}. 
+%% create access token for identity bypass password
+-spec issue(access(), timeout()) -> {ok, token()} | {error, _}. 
+-spec issue(access(), timeout(), roles()) -> {ok, token()} | {error, _}. 
 
-code(Access, TTL) ->
+issue(Access, TTL) ->
    [either ||
       permit_keyval:lookup(scalar:s(Access)),
-      token_create_new(_, TTL)
+      permit_token:new(_, TTL)
    ].
 
-%%
-%% derive a new token from existed one
--spec token(token()) -> {ok, token()} | {error, _}.
--spec token(token(), timeout()) -> {ok, token()} | {error, _}.
--spec token(token(), timeout(), roles()) -> {ok, token()} | {error, _}.
-
-token(Token) ->
-   token(Token, ?CONFIG_TTL_ACCESS).
-
-token(Token, TTL) ->
-   token(Token, TTL, []).
-
-token(Token, TTL, Roles) ->
+issue(Access, TTL, Roles) ->
    [either ||
-      validate(Token, Roles),
-      token_create_new(_, TTL)
+      permit_keyval:lookup(scalar:s(Access)),
+      permit_token:new(_, TTL, Roles)
    ].
-
-token_create_new(Identity, TTL) ->
-   Access = lens:get(permit_pubkey:access(), Identity),
-   Roles  = lens:get(permit_pubkey:roles(), Identity),
-   [either ||
-      permit_keyval:lookup(Access),
-      permit_token:new(_, TTL, Roles),
-      permit_token:encode(_)
-   ]. 
    
 %%
 %% validate access token
 -spec validate(token()) -> {ok, map()} | {error, _}.
--spec validate(token(), roles()) -> {ok, map()} | {error, _}.
 
 validate(Token) ->
-   validate(Token, []).
-
-validate(Token, Roles) ->
    [either ||
-      permit_token:decode(Token),
-      fmap(lens:get(permit_token:access(), _)),
+      jwt:decode(Token, scalar:s(opts:val(secret, permit))),
+      fmap(lens:get(lens:map(<<"sub">>), _)),
       permit_keyval:lookup(_),
       fmap(lens:get(permit_pubkey:secret(), _)),
-      permit_token:check(Token, _, Roles)
+      permit_token:check(Token, _)
    ].

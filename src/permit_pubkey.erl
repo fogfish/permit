@@ -16,11 +16,21 @@
   ,authenticate/2
   ,authenticate/3
   ,authenticate/4
+  ,acl/2
 ]).
 
 %%
 %%
 -type pubkey() :: map().
+
+%%
+%% pubkey attributes 
+access() -> lens:map(<<"access">>,  undefined).
+secret() -> lens:map(<<"secret">>,  undefined).
+master() -> lens:map(<<"master">>,  undefined).
+nonce()  -> lens:map(<<"nonce">>,   undefined).
+roles()  -> lens:map(<<"roles">>,   undefined).
+
 
 %%
 %% create new pubkey pair 
@@ -29,24 +39,12 @@
 new(Access, Secret, Roles) ->
    Nonce = permit_hash:random(?CONFIG_SALT),
    {ok, [$.||
-      lens:put(access(), Access, #{}),
-      % lens:put(master(), Access, _),
+      fmap(#{}),
+      lens:put(access(), Access, _),
       lens:put(secret(), permit_hash:sign(Secret, Nonce), _),
       lens:put(nonce(), Nonce, _),
       lens:put(roles(), roles(Roles), _)
    ]}.
-
-roles(Roles) ->
-   lists:usort([scalar:s(X) || X <- Roles]).
-
-
-%%
-%% attributes 
-access() -> lens:map(<<"access">>,  undefined).
-secret() -> lens:map(<<"secret">>,  undefined).
-master() -> lens:map(<<"master">>,  undefined).
-nonce()  -> lens:map(<<"nonce">>,   undefined).
-roles()  -> lens:map(<<"roles">>,   undefined).
 
 
 %%
@@ -63,7 +61,7 @@ authenticate(PubKey, Secret, TTL, Roles) ->
    [either ||
       auth_signature(PubKey, Secret),
       auth_roles(_, Roles),
-      auth_token(PubKey, TTL, _)
+      permit_token:new(PubKey, TTL, _)      
    ].
 
 auth_signature(PubKey, Secret) ->
@@ -87,8 +85,21 @@ auth_roles(PubKey, Roles) ->
          {ok, Rx}
    end.
 
-auth_token(PubKey, TTL, Roles) ->
-   [either ||
-      permit_token:new(PubKey, TTL, Roles),
-      permit_token:encode(_)
-   ].
+%%
+%% return valid list of roles
+-spec acl(pubkey(), permit:roles()) -> permit:roles().
+
+acl(PubKey, Roles) ->
+   A = gb_sets:from_list(lens:get(roles(), PubKey)),
+   B = gb_sets:from_list(roles(Roles)),
+   gb_sets:to_list(gb_sets:intersection(A, B)).
+
+%%-----------------------------------------------------------------------------
+%%
+%% private
+%%
+%%-----------------------------------------------------------------------------
+
+roles(Roles) ->
+   lists:usort([scalar:s(X) || X <- Roles]).
+

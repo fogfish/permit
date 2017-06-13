@@ -1,12 +1,13 @@
 {application, permit,
    [
       {description, "identity and access management"},
-      {vsn,         "0.1.0"},
+      {vsn,         "0.2.0"},
       {modules,     []},
       {registered,  []},
       {applications,[
          kernel
         ,stdlib
+        ,uid
         ,pts
       ]},
       {mod, {permit_app, []}},
