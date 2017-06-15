@@ -41,8 +41,8 @@ new(Access, Secret, Roles) ->
    {ok, [$.||
       fmap(#{}),
       lens:put(access(), Access, _),
-      lens:put(secret(), permit_hash:sign(Secret, Nonce), _),
-      lens:put(nonce(), Nonce, _),
+      lens:put(secret(), base64url:encode(permit_hash:sign(Secret, Nonce)), _),
+      lens:put(nonce(), base64url:encode(Nonce), _),
       lens:put(roles(), roles(Roles), _)
    ]}.
 
@@ -65,8 +65,8 @@ authenticate(PubKey, Secret, TTL, Roles) ->
    ].
 
 auth_signature(PubKey, Secret) ->
-   Nonce  = lens:get(nonce(),  PubKey),
-   SignA  = lens:get(secret(), PubKey),
+   Nonce  = base64url:decode(lens:get(nonce(), PubKey)),
+   SignA  = base64url:decode(lens:get(secret(), PubKey)),
    SignB  = permit_hash:sign(Secret, Nonce),
    case permit_hash:eq(SignA, SignB) of
       true  ->

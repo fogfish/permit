@@ -75,9 +75,9 @@ new(_Config) ->
    <<"access">> = lens:get(permit_pubkey:access(), PubKey),
    undefined = lens:get(permit_pubkey:master(), PubKey),
    Nonce  = erlang:iolist_to_binary(lists:duplicate(?CONFIG_SALT, $x)),
-   Nonce  = lens:get(permit_pubkey:nonce(), PubKey),
+   Nonce  = base64url:decode(lens:get(permit_pubkey:nonce(), PubKey)),
    Secret = permit_hash:sign(<<"secret">>, Nonce),
-   Secret = lens:get(permit_pubkey:secret(), PubKey),
+   Secret = base64url:decode(lens:get(permit_pubkey:secret(), PubKey)),
    [<<"a">>, <<"b">>, <<"c">>] = lens:get(permit_pubkey:roles(), PubKey).
 
 
