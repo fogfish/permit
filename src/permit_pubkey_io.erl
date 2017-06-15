@@ -7,7 +7,7 @@
 -export([create/1, update/1, lookup/1, remove/1]).
 
 %% 
--export([start_link/2, init/1, free/2, none/3, pair/3]).
+-export([start_link/3, init/1, free/2, none/3, pair/3]).
 
 %%-----------------------------------------------------------------------------
 %%
@@ -44,7 +44,7 @@ remove(PubKey) ->
 %%
 %%-----------------------------------------------------------------------------
 
-start_link(Ns, Access) ->
+start_link(_Uri, Ns, Access) ->
    pipe:start_link(?MODULE, [Ns, Access], []).
 
 init([Ns, Access]) ->

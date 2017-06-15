@@ -31,10 +31,12 @@ init([]) ->
 
 
 spec() ->
+   Backend = opts:val(backend, permit_pubkey_io, permit),
+   Storage = opts:val(storage, permit),
    [permit, 
       [
          'read-through',
          {factory, temporary},
-         {entity,  {opts:val(backend, permit_pubkey_io, permit), start_link, []}}
+         {entity,  {Backend, start_link, [Storage]}}
       ]
    ].   
