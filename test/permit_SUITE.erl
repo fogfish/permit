@@ -108,17 +108,17 @@ update_notfound(_Config) ->
 
 %%
 lookup(_Config) ->
-   {ok, _} = permit:create("lookup@example.com", "secret"),
-   {ok, Token} = permit:lookup("lookup@example.com", "secret"),
+   {ok, _} = permit:create("lookup@example.com", "secret", [a, b, c]),
    {ok, #{
-      <<"sub">> := <<"lookup@example.com">>, 
-      <<"exp">> := _,
-      <<"uid">> := true
-   }} = permit:validate(Token).
+      <<"access">> := <<"lookup@example.com">>, 
+      <<"secret">> := _,
+      <<"nonce">>  := _,
+      <<"roles">>  := [<<"a">>, <<"b">>, <<"c">>]
+   }} = permit:lookup("lookup@example.com").
 
 %%
 lookup_notfound(_Config) ->
-   {error, not_found} = permit:lookup("not_found@example.com", "secret").
+   {error, not_found} = permit:lookup("not_found@example.com").
 
 %%
 revoke(_Config) ->

@@ -18,7 +18,7 @@
    create/3,
    update/2,
    update/3,
-   lookup/2,
+   lookup/1,
    pubkey/1,
    pubkey/2,
    revoke/1,
@@ -29,7 +29,7 @@
    issue/3,
    validate/1
 ]).
--export_type([access/0, secret/0, token/0, roles/0]).
+-export_type([access/0, secret/0, token/0, roles/0, pubkey/0]).
 
 %%
 %% data types
@@ -37,6 +37,7 @@
 -type secret()   :: binary().
 -type token()    :: binary().
 -type roles()    :: [binary() | atom()].
+-type pubkey()   :: #{binary() => _}.
 
 %%
 %%
@@ -92,13 +93,10 @@ update(Access, Secret, Roles) ->
 %%
 %% {ok, Token} = permit:signup("joe@example.com", "secret").
 %%
--spec lookup(access(), secret()) -> {ok, token()} | {error, any()}.
+-spec lookup(access()) -> {ok, token()} | {error, any()}.
 
-lookup(Access, Secret) ->
-   [either ||
-      permit_pubkey_io:lookup(scalar:s(Access)),
-      permit_pubkey:authenticate(_, scalar:s(Secret))
-   ].
+lookup(Access) ->
+   permit_pubkey_io:lookup(scalar:s(Access)).
 
 %%
 %% revoke pubkey pair associated with access key
