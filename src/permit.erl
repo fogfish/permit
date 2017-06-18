@@ -54,7 +54,7 @@ start() ->
 -spec create(access(), secret(), roles()) -> {ok, token()} | {error, _}.
 
 create(Access, Secret) ->
-   create(Access, Secret, [uid]).
+   create(Access, Secret, default_roles()).
 
 create(Access, Secret, Roles)
  when is_binary(Access), is_binary(Secret) ->
@@ -74,7 +74,7 @@ create(Access, Secret, Roles) ->
 -spec update(access(), secret(), roles()) -> {ok, token()} | {error, _}.
 
 update(Access, Secret) ->
-   update(Access, Secret, [uid]).
+   update(Access, Secret, default_roles()).
 
 update(Access, Secret, Roles)
  when is_binary(Access), is_binary(Secret) ->
@@ -115,7 +115,7 @@ revoke(Access) ->
 -spec pubkey(token(), roles()) -> {ok, map()} | {error, any()}.
 
 pubkey(Token) ->
-   pubkey(Token, [access]).
+   pubkey(Token, default_roles()).
 
 pubkey(Token, Roles) ->
    [either ||
@@ -193,3 +193,13 @@ validate(Token) ->
       fmap(lens:get(permit_pubkey:secret(), _)),
       permit_token:check(Token, _)
    ].
+
+%%
+%%
+default_roles() ->
+   [$. ||
+      opts:val(roles, permit),
+      scalar:s(_),
+      binary:split(_, <<$ >>, [trim, global])
+   ].
+

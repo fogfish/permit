@@ -181,7 +181,7 @@ pubkey(_Config) ->
    {ok, #{
       <<"sub">>    := Access,
       <<"exp">>    := _,
-      <<"access">> := true,
+      <<"uid">>    := true,
       <<"master">> := <<"pubkey@example.com">>
    }} = permit:validate(Token).
 
