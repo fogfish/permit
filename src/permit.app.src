@@ -9,6 +9,7 @@
         ,stdlib
         ,uid
         ,pts
+        ,jwt
       ]},
       {mod, {permit_app, []}},
       {env, []}
