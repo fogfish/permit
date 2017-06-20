@@ -2,7 +2,7 @@
 
 The library implements a high-level api for security tokens management. The library do not attempt to implement own crypto, instead it is heavily depends on external low-level crypto primitives, making them usable through simple use-case oriented api calls.
 
-[![Build Status](https://secure.travis-ci.org/fogfish/permit.svg?branch=master)](http://travis-ci.org/fogfish/permit)
+[![Build Status](https://secure.travis-ci.org/fogfish/permit.svg?branch=master)](http://travis-ci.org/fogfish/permit) [![Coverage Status](https://coveralls.io/repos/github/fogfish/permit/badge.svg?branch=master)](https://coveralls.io/github/fogfish/permit?branch=master)
 
 
 ## Key features 
