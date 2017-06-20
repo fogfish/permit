@@ -31,8 +31,8 @@ init([]) ->
 
 
 spec() ->
-   Backend = opts:val(backend, permit_pubkey_io, permit),
-   Storage = opts:val(storage, permit),
+   Storage = uri:new( opts:val(storage, permit) ),
+   Backend = uri:protocol(permit, Storage),
    [permit, 
       [
          'read-through',
