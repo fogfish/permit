@@ -7,7 +7,7 @@
 -export([create/1, update/1, lookup/1, remove/1]).
 
 %% 
--export([start_link/3, init/1, free/2, none/3, pair/3]).
+-export([start_link/3, init/1, free/2, none/3, some/3]).
 
 %%-----------------------------------------------------------------------------
 %%
@@ -57,7 +57,7 @@ free(_, _PubKey) ->
 %%
 none({put, _Access, PubKey}, Pipe, _) ->
    pipe:ack(Pipe, {ok, PubKey}),
-   {next_state, pair, PubKey};
+   {next_state, some, PubKey};
 
 none({update, _Access, _PubKey}, Pipe, State) ->
    pipe:ack(Pipe, {error, not_found}),
@@ -69,22 +69,31 @@ none({get, _Access}, Pipe, State) ->
 
 none({remove, _Access}, Pipe, State) ->
    pipe:ack(Pipe, {error, not_found}),
+   {stop, normal, State};
+
+none(_, Pipe, State) ->
+   pipe:ack(Pipe, {error, unsupported}),
    {stop, normal, State}.
+   
 
 %%
-pair({put, _Access, _PubKey}, Pipe, PubKey) ->
+some({put, _Access, _PubKey}, Pipe, PubKey) ->
    pipe:ack(Pipe, {error, conflict}),
-   {next_state, pair, PubKey};
+   {next_state, some, PubKey};
 
-pair({update, _Access, PubKey}, Pipe, _) ->
+some({update, _Access, PubKey}, Pipe, _) ->
    pipe:ack(Pipe, {ok, PubKey}),
-   {next_state, pair, PubKey};
+   {next_state, some, PubKey};
 
-pair({get, _Access}, Pipe, PubKey) ->
+some({get, _Access}, Pipe, PubKey) ->
    pipe:ack(Pipe, {ok, PubKey}),
-   {next_state, pair, PubKey};
+   {next_state, some, PubKey};
 
-pair({remove, _Access}, Pipe, PubKey) ->
+some({remove, _Access}, Pipe, PubKey) ->
    pipe:ack(Pipe, {ok, PubKey}),
-   {stop, normal, PubKey}.
+   {stop, normal, PubKey};
+
+some(_, Pipe, State) ->
+   pipe:ack(Pipe, {error, unsupported}),
+   {next_state, some, State}.
 
