@@ -51,10 +51,13 @@ groups() ->
 %%%----------------------------------------------------------------------------   
 init_per_suite(Config) ->
    permit:start(),
+   {ok, Pid} = permit:ephemeral(),
+   erlang:unlink(Pid),
    Config.
 
 
 end_per_suite(_Config) ->
+   erlang:exit(whereis(permit), kill),
    application:stop(permit),
    ok.
 
@@ -167,7 +170,7 @@ auth_invalid_secret(_Config) ->
 %%
 auth_invalid_roles(_Config) ->
    {ok, _} = permit:create("auth_roles@example.com", "secret", [a, b, c, d]),
-   {error, scopes} = permit:auth("auth_secret@example.com", "secret", 3600, [e]).
+   {error, scopes} = permit:auth("auth_roles@example.com", "secret", 3600, [e]).
 
 %%
 pubkey(_Config) ->

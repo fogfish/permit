@@ -12,7 +12,7 @@
 -include("permit.hrl").
 -compile({parse_transform, category}).
 
--export([start/0]).
+-export([start/0, ephemeral/0]).
 -export([
    create/2, 
    create/3,
@@ -43,6 +43,15 @@
 %%
 start() ->
    applib:boot(?MODULE, code:where_is_file("app.config")).
+
+
+ephemeral() ->
+   pts:start_link(permit, [
+      'read-through',
+      {factory, temporary},
+      {entity,  {permit_pubkey_io, start_link, [undefined]}}
+   ]).
+
 
 %%
 %% Create a new pubkey pair, declare unique access and secret identity.

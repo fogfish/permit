@@ -11,6 +11,8 @@
 ]).
 
 %%
+%% @remove
+%%
 %% decodes oauth2 request
 %% parse application/x-www-form-urlencoded oauth2 request as pairs
 -spec decode(_) -> {ok, _} | {error, _}.  

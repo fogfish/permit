@@ -45,10 +45,13 @@ groups() ->
 %%%----------------------------------------------------------------------------   
 init_per_suite(Config) ->
    permit:start(),
+   {ok, Pid} = permit:ephemeral(),
+   erlang:unlink(Pid),
    Config.
 
 
 end_per_suite(_Config) ->
+   erlang:exit(whereis(permit), kill),
    application:stop(permit),
    ok.
 

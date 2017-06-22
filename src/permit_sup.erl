@@ -24,19 +24,6 @@ init([]) ->
       {
          {one_for_one, 4, 1800},
          [
-            ?CHILD(worker, pts, spec())
          ]
       }
    }.
-
-
-spec() ->
-   Storage = opts:val(storage, permit),
-   Backend = opts:val(backend, permit),
-   [permit, 
-      [
-         'read-through',
-         {factory, temporary},
-         {entity,  {Backend, start_link, [Storage]}}
-      ]
-   ].   
