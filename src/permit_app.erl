@@ -4,7 +4,6 @@
 -export([
    start/2
   ,stop/1
-  ,uri_protocol/2
 ]).
 
 %%
@@ -16,7 +15,3 @@ start(_Type, _Args) ->
 %%
 stop(_State) ->
    ok.
-
-%%
-%%
-uri_protocol(permit, mem) -> permit_pubkey_io.
