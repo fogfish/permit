@@ -15,7 +15,10 @@
 %%
 %% create new token with given ttl and roles
 new(PubKey, TTL) ->
-   new(PubKey, TTL, permit_pubkey:claims(PubKey)).
+   [either ||
+      permit_pubkey:claims(PubKey),
+      new(PubKey, TTL, _)
+   ].
 
 new(PubKey, TTL, Claims) ->
    Sub = lens:get(permit_pubkey:access(), PubKey),
