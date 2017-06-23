@@ -111,12 +111,15 @@ update_notfound(_Config) ->
 
 %%
 lookup(_Config) ->
-   {ok, _} = permit:create("lookup@example.com", "secret", [a, b, c]),
+   {ok, _} = permit:create("lookup@example.com", "secret", 
+      #{<<"a">> => 1, <<"b">> => true, <<"c">> => <<"x">>}),
    {ok, #{
       <<"access">> := <<"lookup@example.com">>, 
       <<"secret">> := _,
       <<"nonce">>  := _,
-      <<"roles">>  := [<<"a">>, <<"b">>, <<"c">>]
+      <<"a">>      := 1,
+      <<"b">>      := true,
+      <<"c">>      := <<"x">>
    }} = permit:lookup("lookup@example.com").
 
 %%
@@ -132,49 +135,54 @@ revoke(_Config) ->
 
 %%
 auth(_Config) ->
-   {ok,    _} = permit:create("auth@example.com", "secret", [a, b, c, d]),
+   {ok,    _} = permit:create("auth@example.com", "secret", 
+      #{<<"a">> => 1, <<"b">> => true, <<"c">> => <<"x">>, <<"d">> => false}),
 
    {ok, TknA} = permit:auth("auth@example.com", "secret"),
    {ok, #{
       <<"sub">> := <<"auth@example.com">>,
       <<"exp">> := _,
-      <<"a">>   := true,
+      <<"a">>   := 1,
       <<"b">>   := true,
-      <<"c">>   := true,
-      <<"d">>   := true
+      <<"c">>   := <<"x">>,
+      <<"d">>   := false
    }} = permit:validate(TknA),
 
    {ok, TknB} = permit:auth("auth@example.com", "secret", 3600),
    {ok, #{
       <<"sub">> := <<"auth@example.com">>, 
       <<"exp">> := _,
-      <<"a">>   := true,
+      <<"a">>   := 1,
       <<"b">>   := true,
-      <<"c">>   := true,
-      <<"d">>   := true
+      <<"c">>   := <<"x">>,
+      <<"d">>   := false
    }} = permit:validate(TknB),
 
-   {ok, TknC} = permit:auth("auth@example.com", "secret", 3600, [a, d]),
+   {ok, TknC} = permit:auth("auth@example.com", "secret", 3600, 
+      #{<<"a">> => 5, <<"d">> => true}),
    {ok, #{
       <<"sub">> := <<"auth@example.com">>, 
       <<"exp">> := _,
-      <<"a">>   := true,
+      <<"a">>   := 5,
       <<"d">>   := true
    }} = permit:validate(TknC).
 
 %%
 auth_invalid_secret(_Config) ->
-   {ok, _} = permit:create("auth_secret@example.com", "secret", [a, b, c, d]),
+   {ok, _} = permit:create("auth_secret@example.com", "secret", 
+      #{<<"a">> => 1, <<"b">> => true, <<"c">> => <<"x">>, <<"d">> => false}),
    {error, unauthorized} = permit:auth("auth_secret@example.com", "unsecret").
 
 %%
 auth_invalid_roles(_Config) ->
-   {ok, _} = permit:create("auth_roles@example.com", "secret", [a, b, c, d]),
-   {error, scopes} = permit:auth("auth_roles@example.com", "secret", 3600, [e]).
+   {ok, _} = permit:create("auth_roles@example.com", "secret", 
+      #{<<"a">> => 1, <<"b">> => true, <<"c">> => <<"x">>, <<"d">> => false}),
+   {error, unauthorized} = permit:auth("auth_roles@example.com", "secret", 3600, #{<<"e">> => true}).
 
 %%
 pubkey(_Config) ->
-   {ok, Master} = permit:create("pubkey@example.com", "secret", [a, b, c, d]),
+   {ok, Master} = permit:create("pubkey@example.com", "secret", 
+      #{<<"a">> => 1, <<"b">> => true, <<"c">> => <<"x">>, <<"d">> => false}),
    {ok, #{
       <<"access">> := Access,
       <<"secret">> := Secret
@@ -190,18 +198,21 @@ pubkey(_Config) ->
 
 %%
 issue(_Config) ->
-   {ok, TknA} = permit:create("issue@example.com", "secret", [a, b, c, d]),   
-   {ok, TknB} = permit:issue("issue@example.com", 600, [a, b, c, d]),
+   {ok, TknA} = permit:create("issue@example.com", "secret", 
+      #{<<"a">> => 1, <<"b">> => true, <<"c">> => <<"x">>, <<"d">> => false}),   
+   {ok, TknB} = permit:issue("issue@example.com", 600, 
+      #{<<"a">> => 1, <<"b">> => true, <<"c">> => <<"x">>, <<"d">> => false}),
    {ok, #{
       <<"sub">> := <<"issue@example.com">>,
       <<"exp">> := _,
-      <<"a">>   := true,
+      <<"a">>   := 1,
       <<"b">>   := true,
-      <<"c">>   := true,
-      <<"d">>   := true
+      <<"c">>   := <<"x">>,
+      <<"d">>   := false
    }} = permit:validate(TknB).
 
 %%
 issue_invalid_roles(_Config) ->
-   {ok, TknA} = permit:create("token_roles@example.com", "secret", [a, b, c, d]),   
-   {error, invalid_roles} = permit:issue("token_roles@example.com", 3600, [e]).
+   {ok, TknA} = permit:create("token_roles@example.com", "secret",
+      #{<<"a">> => 1, <<"b">> => true, <<"c">> => <<"x">>, <<"d">> => false}),   
+   {error, unauthorized} = permit:issue("token_roles@example.com", 3600, #{<<"e">> => true}).

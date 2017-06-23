@@ -11,8 +11,9 @@
   ,secret/0
   ,master/0
   ,nonce/0
-  ,roles/0
+  % ,roles/0
 
+  ,claims/1
   ,authenticate/2
   ,authenticate/3
   ,authenticate/4
@@ -29,22 +30,30 @@ access() -> lens:map(<<"access">>,  undefined).
 secret() -> lens:map(<<"secret">>,  undefined).
 master() -> lens:map(<<"master">>,  undefined).
 nonce()  -> lens:map(<<"nonce">>,   undefined).
-roles()  -> lens:map(<<"roles">>,   undefined).
+% roles()  -> lens:map(<<"roles">>,   undefined).
 
 
 %%
 %% create new pubkey pair 
 -spec new(permit:access(), permit:secret(), permit:roles()) -> {ok, pubkey()} | {error, _}.
 
-new(Access, Secret, Roles) ->
+new(Access, Secret, Claims) ->
    Nonce = permit_hash:random(?CONFIG_SALT),
    {ok, [$.||
       fmap(#{}),
       lens:put(access(), Access, _),
       lens:put(secret(), base64url:encode(permit_hash:sign(Secret, Nonce)), _),
       lens:put(nonce(), base64url:encode(Nonce), _),
-      lens:put(roles(), roles(Roles), _)
+      fmap(maps:merge(_, Claims))
    ]}.
+
+%%
+%%
+-spec claims(_) -> {ok, permit:claims()} | {error, _}.
+
+claims(#{<<"access">> := _} = PubKey) ->
+   {ok, maps:without(
+         [<<"access">>, <<"secret">>, <<"master">>, <<"nonce">>], PubKey)}.
 
 
 %%
@@ -52,15 +61,21 @@ new(Access, Secret, Roles) ->
 -spec authenticate(pubkey(), permit:secret()) -> {ok, permit:token()} | {error, _}. 
 
 authenticate(PubKey, Secret) ->
-   authenticate(PubKey, Secret, ?CONFIG_TTL_ACCESS, lens:get(roles(), PubKey)).
+   [either ||
+      claims(PubKey),
+      authenticate(PubKey, Secret, ?CONFIG_TTL_ACCESS, _)
+   ].
 
 authenticate(PubKey, Secret, TTL) ->
-   authenticate(PubKey, Secret, TTL, lens:get(roles(), PubKey)).
+   [either ||
+      claims(PubKey),
+      authenticate(PubKey, Secret, TTL, _)
+   ].
 
-authenticate(PubKey, Secret, TTL, Roles) ->
+authenticate(PubKey, Secret, TTL, Claims) ->
    [either ||
       auth_signature(PubKey, Secret),
-      auth_roles(_, Roles),
+      auth_claims(_, Claims),
       permit_token:new(PubKey, TTL, _)      
    ].
 
@@ -75,31 +90,25 @@ auth_signature(PubKey, Secret) ->
          {error, unauthorized}
    end.
 
-auth_roles(PubKey, Roles) ->
-   A = gb_sets:from_list(roles(Roles)),
-   B = gb_sets:from_list(lens:get(permit_pubkey:roles(), PubKey)),
-   case gb_sets:to_list(gb_sets:intersection(A, B)) of
-      [] ->
-         {error, scopes};
-      Rx ->
-         {ok, Rx}
-   end.
+auth_claims(PubKey, Claims) ->
+   [either ||
+      claims(PubKey),
+      fmap(maps:with(maps:keys(_), Claims)),
+      is_non_empty_claim(_)
+   ].
+
+is_non_empty_claim(X)
+ when map_size(X) =:= 0 ->
+   {error, unauthorized};
+is_non_empty_claim(X) ->
+   {ok, X}.
 
 %%
 %% return valid list of roles
--spec acl(pubkey(), permit:roles()) -> permit:roles().
+-spec acl(pubkey(), permit:claims()) -> {ok, permit:claims()} | {error, _}.
 
-acl(PubKey, Roles) ->
-   A = gb_sets:from_list(lens:get(roles(), PubKey)),
-   B = gb_sets:from_list(roles(Roles)),
-   gb_sets:to_list(gb_sets:intersection(A, B)).
-
-%%-----------------------------------------------------------------------------
-%%
-%% private
-%%
-%%-----------------------------------------------------------------------------
-
-roles(Roles) ->
-   lists:usort([scalar:s(X) || X <- Roles]).
-
+acl(PubKey, Claims) ->
+   [either ||
+      claims(PubKey),
+      fmap(maps:with(maps:keys(_), Claims))
+   ].

@@ -64,8 +64,9 @@ end_per_group(_, _Config) ->
 
 %%   
 check(_Config) ->
-   {ok, PubKey} = permit_pubkey:new(<<"access">>, <<"secret">>, [a, b, c]),
-   {ok, Token}  = permit_token:new(PubKey, 3600, [a]),
+   {ok, PubKey} = permit_pubkey:new(<<"access">>, <<"secret">>, 
+      #{<<"a">> => 1, <<"b">> => true, <<"c">> => <<"x">>}),
+   {ok, Token}  = permit_token:new(PubKey, 3600, #{<<"a">> => true}),
 
    Access = lens:get(permit_pubkey:access(), PubKey),
    Secret = lens:get(permit_pubkey:secret(), PubKey),
@@ -77,18 +78,21 @@ check(_Config) ->
 
 %%
 invalid_roles(_Config) ->
-   {ok, PubKey} = permit_pubkey:new(<<"access">>, <<"secret">>, [a, b, c]),
-   {error, invalid_roles} = permit_token:new(PubKey, 3600, [d]).
+   {ok, PubKey} = permit_pubkey:new(<<"access">>, <<"secret">>, 
+      #{<<"a">> => 1, <<"b">> => true, <<"c">> => <<"x">>}),
+   {error, unauthorized} = permit_token:new(PubKey, 3600, #{<<"d">> => true}).
 
 %%
 expired_token(_Config) ->
-   {ok, PubKey} = permit_pubkey:new(<<"access">>, <<"secret">>, [a, b, c]),
-   {ok, Token}  = permit_token:new(PubKey, -1, [a]),
+   {ok, PubKey} = permit_pubkey:new(<<"access">>, <<"secret">>, 
+      #{<<"a">> => 1, <<"b">> => true, <<"c">> => <<"x">>}),
+   {ok, Token}  = permit_token:new(PubKey, -1, #{<<"a">> => 1}),
    Secret = lens:get(permit_pubkey:secret(), PubKey),
    {error, expired} = permit_token:check(Token, Secret).
 
 %%
 invalid_secret(_Config) ->
-   {ok, PubKey} = permit_pubkey:new(<<"access">>, <<"secret">>, [a, b, c]),
-   {ok, Token}  = permit_token:new(PubKey, 3600, [a]),
+   {ok, PubKey} = permit_pubkey:new(<<"access">>, <<"secret">>, 
+      #{<<"a">> => 1, <<"b">> => true, <<"c">> => <<"x">>}),
+   {ok, Token}  = permit_token:new(PubKey, 3600, #{<<"a">> => 1}),
    {error, invalid_signature} = permit_token:check(Token, <<"unsecret">>).

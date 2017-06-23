@@ -29,14 +29,14 @@
    issue/3,
    validate/1
 ]).
--export_type([access/0, secret/0, token/0, roles/0, pubkey/0]).
+-export_type([access/0, secret/0, token/0, claims/0, pubkey/0]).
 
 %%
 %% data types
 -type access()   :: binary().
 -type secret()   :: binary().
 -type token()    :: binary().
--type roles()    :: [binary() | atom()].
+-type claims()   :: #{binary() => _}.
 -type pubkey()   :: #{binary() => _}.
 
 %%
@@ -60,15 +60,15 @@ ephemeral() ->
 %% {ok, Token} = permit:create("joe@example.com", "secret").
 %%
 -spec create(access(), secret()) -> {ok, token()} | {error, _}.
--spec create(access(), secret(), roles()) -> {ok, token()} | {error, _}.
+-spec create(access(), secret(), claims()) -> {ok, token()} | {error, _}.
 
 create(Access, Secret) ->
-   create(Access, Secret, default_roles()).
+   create(Access, Secret, default_claims()).
 
-create(Access, Secret, Roles)
+create(Access, Secret, Claims)
  when is_binary(Access), is_binary(Secret) ->
    [either ||
-      permit_pubkey:new(Access, Secret, Roles),
+      permit_pubkey:new(Access, Secret, Claims),
       permit_pubkey_io:create(_),
       permit_pubkey:authenticate(_, Secret)
    ];
@@ -80,10 +80,10 @@ create(Access, Secret, Roles) ->
 %% Update an existed pubkey pair, use unique access to substitute secret key
 %% all allocated tokens becomes invalid
 -spec update(access(), secret()) -> {ok, token()} | {error, _}.
--spec update(access(), secret(), roles()) -> {ok, token()} | {error, _}.
+-spec update(access(), secret(), claims()) -> {ok, token()} | {error, _}.
 
 update(Access, Secret) ->
-   update(Access, Secret, default_roles()).
+   update(Access, Secret, default_claims()).
 
 update(Access, Secret, Roles)
  when is_binary(Access), is_binary(Secret) ->
@@ -121,10 +121,10 @@ revoke(Access) ->
 %%
 %% derive a new pubkey pair from master key
 -spec pubkey(token()) -> {ok, map()} | {error, any()}.
--spec pubkey(token(), roles()) -> {ok, map()} | {error, any()}.
+-spec pubkey(token(), claims()) -> {ok, map()} | {error, any()}.
 
 pubkey(Token) ->
-   pubkey(Token, default_roles()).
+   pubkey(Token, default_claims()).
 
 pubkey(Token, Roles) ->
    [either ||
@@ -153,7 +153,7 @@ pubkey_access_pair_new(_PubKey, Access, Secret) ->
 %% Returns a token bounded to given roles.
 -spec auth(access(), secret()) -> {ok, token()} | {error, _}. 
 -spec auth(access(), secret(), timeout()) -> {ok, token()} | {error, _}. 
--spec auth(access(), secret(), timeout(), roles()) -> {ok, token()} | {error, _}. 
+-spec auth(access(), secret(), timeout(), claims()) -> {ok, token()} | {error, _}. 
 
 auth(Access, Secret) ->
    [either ||
@@ -176,7 +176,7 @@ auth(Access, Secret, TTL, Roles) ->
 %%
 %% create access token for identity bypass password
 -spec issue(access(), timeout()) -> {ok, token()} | {error, _}. 
--spec issue(access(), timeout(), roles()) -> {ok, token()} | {error, _}. 
+-spec issue(access(), timeout(), claims()) -> {ok, token()} | {error, _}. 
 
 issue(Access, TTL) ->
    [either ||
@@ -184,10 +184,10 @@ issue(Access, TTL) ->
       permit_token:new(_, TTL)
    ].
 
-issue(Access, TTL, Roles) ->
+issue(Access, TTL, Claims) ->
    [either ||
       permit_pubkey_io:lookup(scalar:s(Access)),
-      permit_token:new(_, TTL, Roles)
+      permit_token:new(_, TTL, Claims)
    ].
    
 %%
@@ -205,10 +205,12 @@ validate(Token) ->
 
 %%
 %%
-default_roles() ->
+default_claims() ->
    [$. ||
       opts:val(roles, permit),
       scalar:s(_),
-      binary:split(_, <<$ >>, [trim, global])
+      binary:split(_, <<$ >>, [trim, global]),
+      lists:map(fun(X) -> {X, true} end, _),
+      maps:from_list(_)
    ].
 

@@ -15,12 +15,12 @@
 %%
 %% create new token with given ttl and roles
 new(PubKey, TTL) ->
-   new(PubKey, TTL, lens:get(permit_pubkey:roles(), PubKey)).
+   new(PubKey, TTL, permit_pubkey:claims(PubKey)).
 
-new(PubKey, TTL, Roles) ->
+new(PubKey, TTL, Claims) ->
    Sub = lens:get(permit_pubkey:access(), PubKey),
    [either ||
-      acl(PubKey, TTL, Roles),
+      acl(PubKey, TTL, Claims),
       jwt:encode(
          ?ALG,
          #{
@@ -32,29 +32,32 @@ new(PubKey, TTL, Roles) ->
       )
    ].
 
-acl(PubKey, TTL, Roles) ->
+acl(PubKey, TTL, Claims) ->
    [either ||
-      eitherT(permit_pubkey:acl(PubKey, Roles)),
+      permit_pubkey:acl(PubKey, Claims),
       build_acl(PubKey, _),
       jwt:encode(?ALG, _, TTL, lens:get(permit_pubkey:secret(), PubKey))
    ].
 
-build_acl(PubKey, List) ->
-   Acl0 = maps:from_list([{X, true} || X <- List]),
-   Acl1 = Acl0#{
+build_acl(_PubKey, Claims)
+ when map_size(Claims) =:= 0 ->
+   {error, unauthorized};
+
+build_acl(PubKey, Claims) ->
+   Acl = Claims#{
       tji => base64url:encode(uid:encode(uid:g())),
       iss => scalar:s(opts:val(issuer, permit)),
       sub => lens:get(permit_pubkey:access(), PubKey)
    },
    case lens:get(permit_pubkey:master(), PubKey) of
       undefined ->
-         {ok, Acl1};
+         {ok, Acl};
       Master ->
-         {ok, Acl1#{master => Master}}
+         {ok, Acl#{master => Master}}
    end.
 
-eitherT([]) -> {error, invalid_roles};
-eitherT(Xs) -> {ok, Xs}.
+% eitherT([]) -> {error, invalid_roles};
+% eitherT(Xs) -> {ok, Xs}.
 
 
 %%
