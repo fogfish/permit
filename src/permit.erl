@@ -85,16 +85,16 @@ create(Access, Secret, Roles) ->
 update(Access, Secret) ->
    update(Access, Secret, default_claims()).
 
-update(Access, Secret, Roles)
+update(Access, Secret, Claims)
  when is_binary(Access), is_binary(Secret) ->
    [either ||
-      permit_pubkey:new(Access, Secret, Roles),
+      permit_pubkey:new(Access, Secret, Claims),
       permit_pubkey_io:update(_),
       permit_pubkey:authenticate(_, Secret)
    ];
 
-update(Access, Secret, Roles) ->
-   update(scalar:s(Access), scalar:s(Secret), Roles).
+update(Access, Secret, Claims) ->
+   update(scalar:s(Access), scalar:s(Secret), Claims).
 
 %%
 %% Lookup an existed pubkey pair, use unique access and secret to prove identity.
@@ -119,32 +119,28 @@ revoke(Access) ->
 
 
 %%
-%% derive a new pubkey pair from master key
--spec pubkey(token()) -> {ok, map()} | {error, any()}.
--spec pubkey(token(), claims()) -> {ok, map()} | {error, any()}.
+%% derive a new pubkey pair from master access key
+-spec pubkey(access()) -> {ok, map()} | {error, any()}.
+-spec pubkey(access(), claims()) -> {ok, map()} | {error, any()}.
 
-pubkey(Token) ->
-   pubkey(Token, default_claims()).
+pubkey(Master) ->
+   pubkey(Master, default_claims()).
 
-pubkey(Token, Roles) ->
-   [either ||
-      permit:validate(Token),
-      pubkey_access_pair(_, Roles)
-   ].
-
-pubkey_access_pair(#{<<"sub">> := Master}, Roles) ->
+pubkey(Master, Claims) ->
    Access = permit_hash:key(?CONFIG_ACCESS),
    Secret = permit_hash:key(?CONFIG_SECRET),
    [either ||
-      permit_pubkey:new(Access, Secret, Roles),
-      fmap(lens:put(permit_pubkey:master(), Master, _)),
+      permit:lookup(Master),
+      permit_pubkey:new(Access, Secret, Claims),
+      fmap(lens:put(permit_pubkey:master(), scalar:s(Master), _)),
       permit_pubkey_io:create(_),
       pubkey_access_pair_new(_, Access, Secret)
    ].
 
 pubkey_access_pair_new(_PubKey, Access, Secret) ->
    {ok, [$. ||
-      lens:put(permit_pubkey:access(), Access, #{}),
+      fmap(#{}),
+      lens:put(permit_pubkey:access(), Access, _),
       lens:put(permit_pubkey:secret(), Secret, _)
    ]}.
 

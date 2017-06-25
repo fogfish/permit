@@ -181,12 +181,12 @@ auth_invalid_roles(_Config) ->
 
 %%
 pubkey(_Config) ->
-   {ok, Master} = permit:create("pubkey@example.com", "secret", 
+   {ok, _} = permit:create("pubkey@example.com", "secret", 
       #{<<"a">> => 1, <<"b">> => true, <<"c">> => <<"x">>, <<"d">> => false}),
    {ok, #{
       <<"access">> := Access,
       <<"secret">> := Secret
-   }} = permit:pubkey(Master),
+   }} = permit:pubkey("pubkey@example.com"),
    
    {ok, Token} = permit:auth(Access, Secret),
    {ok, #{
