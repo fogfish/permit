@@ -16,13 +16,10 @@
   ,claims/1
   ,authenticate/2
   ,authenticate/3
-  ,authenticate/4
+  % ,authenticate/4
   ,acl/2
 ]).
 
-%%
-%%
--type pubkey() :: map().
 
 %%
 %% pubkey attributes 
@@ -30,12 +27,11 @@ access() -> lens:map(<<"access">>,  undefined).
 secret() -> lens:map(<<"secret">>,  undefined).
 master() -> lens:map(<<"master">>,  undefined).
 nonce()  -> lens:map(<<"nonce">>,   undefined).
-% roles()  -> lens:map(<<"roles">>,   undefined).
 
 
 %%
 %% create new pubkey pair 
--spec new(permit:access(), permit:secret(), permit:roles()) -> {ok, pubkey()} | {error, _}.
+-spec new(permit:access(), permit:secret(), permit:roles()) -> {ok, permit:pubkey()} | {error, _}.
 
 new(Access, Secret, Claims) ->
    Nonce = permit_hash:random(?CONFIG_SALT),
@@ -58,25 +54,19 @@ claims(#{<<"access">> := _} = PubKey) ->
 
 %%
 %% authenticate pubkey pair and return a token with defined roles
--spec authenticate(pubkey(), permit:secret()) -> {ok, permit:token()} | {error, _}. 
+-spec authenticate(permit:pubkey(), permit:secret()) -> {ok, permit:pubkey()} | {error, _}. 
 
 authenticate(PubKey, Secret) ->
    [either ||
       claims(PubKey),
-      authenticate(PubKey, Secret, ?CONFIG_TTL_ACCESS, _)
+      authenticate(PubKey, Secret, _)
    ].
 
-authenticate(PubKey, Secret, TTL) ->
-   [either ||
-      claims(PubKey),
-      authenticate(PubKey, Secret, TTL, _)
-   ].
-
-authenticate(PubKey, Secret, TTL, Claims) ->
+authenticate(PubKey, Secret, Claims) ->
    [either ||
       auth_signature(PubKey, Secret),
       auth_claims(_, Claims),
-      permit_token:new(PubKey, TTL, _)      
+      fmap(PubKey)
    ].
 
 auth_signature(PubKey, Secret) ->
@@ -105,7 +95,7 @@ is_non_empty_claim(X) ->
 
 %%
 %% return valid list of roles
--spec acl(pubkey(), permit:claims()) -> {ok, permit:claims()} | {error, _}.
+-spec acl(permit:pubkey(), permit:claims()) -> {ok, permit:claims()} | {error, _}.
 
 acl(PubKey, Claims) ->
    [either ||

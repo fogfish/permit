@@ -22,11 +22,15 @@
    pubkey/1,
    pubkey/2,
    revoke/1,
-   auth/2, 
-   auth/3, 
-   auth/4,
-   issue/2,
-   issue/3,
+   stateless/3,
+   stateless/4,
+   revocable/3,
+   revocable/4,
+   % auth/2, 
+   % auth/3, 
+   % auth/4,
+   % issue/2,
+   % issue/3,
    validate/1
 ]).
 -export_type([access/0, secret/0, token/0, claims/0, pubkey/0]).
@@ -38,19 +42,24 @@
 -type token()    :: binary().
 -type claims()   :: #{binary() => _}.
 -type pubkey()   :: #{binary() => _}.
+-type identity() :: #{binary() => _}.
 
 %%
 %%
 start() ->
    applib:boot(?MODULE, code:where_is_file("app.config")).
 
-
+%%
+%% enable ephemeral mode for permit
 ephemeral() ->
-   pts:start_link(permit, [
+   Spec = [
       'read-through',
       {factory, temporary},
       {entity,  {permit_pubkey_io, start_link, [undefined]}}
-   ]).
+   ],
+   supervisor:start_child(permit_sup, 
+      {pts,  {pts, start_link, [permit, Spec]}, permanent, 5000, supervisor, dynamic}
+   ).
 
 
 %%
@@ -70,13 +79,14 @@ create(Access, Secret, Claims)
    [either ||
       permit_pubkey:new(Access, Secret, Claims),
       permit_pubkey_io:create(_),
-      permit_pubkey:authenticate(_, Secret)
+      permit_pubkey:authenticate(_, Secret),
+      permit_token:revocable(_, ?CONFIG_TTL_ACCESS, Claims)
    ];
 
 create(Access, Secret, Roles) ->
    create(scalar:s(Access), scalar:s(Secret), Roles).
-
-%%
+ 
+%%  
 %% Update an existed pubkey pair, use unique access to substitute secret key
 %% all allocated tokens becomes invalid
 -spec update(access(), secret()) -> {ok, token()} | {error, _}.
@@ -90,7 +100,8 @@ update(Access, Secret, Claims)
    [either ||
       permit_pubkey:new(Access, Secret, Claims),
       permit_pubkey_io:update(_),
-      permit_pubkey:authenticate(_, Secret)
+      permit_pubkey:authenticate(_, Secret),
+      permit_token:revocable(_, ?CONFIG_TTL_ACCESS, Claims)
    ];
 
 update(Access, Secret, Claims) ->
@@ -102,14 +113,14 @@ update(Access, Secret, Claims) ->
 %%
 %% {ok, Token} = permit:signup("joe@example.com", "secret").
 %%
--spec lookup(access()) -> {ok, token()} | {error, any()}.
+-spec lookup(access()) -> {ok, pubkey()} | {error, any()}.
 
 lookup(Access) ->
    permit_pubkey_io:lookup(scalar:s(Access)).
 
 %%
 %% revoke pubkey pair associated with access key
--spec revoke(access()) -> {ok, _} | {error, _}.
+-spec revoke(access()) -> {ok, pubkey()} | {error, _}.
 
 revoke(Access) ->
    [either ||
@@ -120,8 +131,8 @@ revoke(Access) ->
 
 %%
 %% derive a new pubkey pair from master access key
--spec pubkey(access()) -> {ok, map()} | {error, any()}.
--spec pubkey(access(), claims()) -> {ok, map()} | {error, any()}.
+-spec pubkey(access()) -> {ok, identity()} | {error, _}.
+-spec pubkey(access(), claims()) -> {ok, identity()} | {error, _}.
 
 pubkey(Master) ->
    pubkey(Master, default_claims()).
@@ -145,59 +156,101 @@ pubkey_access_pair_new(_PubKey, Access, Secret) ->
    ]}.
 
 %%
-%% Authenticate using unique access and secret to prove identity
-%% Returns a token bounded to given roles.
--spec auth(access(), secret()) -> {ok, token()} | {error, _}. 
--spec auth(access(), secret(), timeout()) -> {ok, token()} | {error, _}. 
--spec auth(access(), secret(), timeout(), claims()) -> {ok, token()} | {error, _}. 
+%% authenticate the identity (access/secret) and 
+%% return a stateless token with given ttl and claims
+-spec stateless(access(), secret(), timeout(), claims()) -> {ok, token()} | {error, _}.
+-spec stateless(token(), timeout(), claims()) -> {ok, token()} | {error, _}.
 
-auth(Access, Secret) ->
+stateless(Access, Secret, TTL, Claims) ->
    [either ||
       permit_pubkey_io:lookup(scalar:s(Access)),
-      permit_pubkey:authenticate(_, Secret)
+      permit_pubkey:authenticate(_, Secret),
+      permit_token:stateless(_, TTL, Claims)
    ].
 
-auth(Access, Secret, TTL) ->
+stateless(Token, TTL, Claims) ->
    [either ||
-      permit_pubkey_io:lookup(scalar:s(Access)),
-      permit_pubkey:authenticate(_, Secret, TTL)
-   ].
-   
-auth(Access, Secret, TTL, Roles) ->
-   [either ||
-      permit_pubkey_io:lookup(scalar:s(Access)),
-      permit_pubkey:authenticate(_, Secret, TTL, Roles)
+      permit:validate(Token),
+      category:maybeT(unauthorized,
+         lens:get(lens:map(<<"sub">>), _)
+      ),
+      permit_pubkey_io:lookup(_),
+      permit_token:stateless(_, TTL, Claims)
    ].
 
 %%
+%% authenticate the identity (access/secret) and 
+%% return a revocable token with given ttl and claims
+-spec revocable(access(), secret(), timeout(), claims()) -> {ok, token()} | {error, _}.
+-spec revocable(token(), timeout(), claims()) -> {ok, token()} | {error, _}.
+
+revocable(Access, Secret, TTL, Claims) ->
+   [either ||
+      permit_pubkey_io:lookup(scalar:s(Access)),
+      permit_pubkey:authenticate(_, Secret),
+      permit_token:revocable(_, TTL, Claims)
+   ].
+
+revocable(Token, TTL, Claims) ->
+   [either ||
+      permit:validate(Token),
+      category:maybeT(unauthorized,
+         lens:get(lens:map(<<"sub">>), _)
+      ),
+      permit_pubkey_io:lookup(_),
+      permit_token:revocable(_, TTL, Claims)
+   ].
+
+
+
+%%
+%% Authenticate using unique access and secret to prove identity
+%% Returns a token bounded to given roles.
+% -spec auth(access(), secret()) -> {ok, token()} | {error, _}. 
+% -spec auth(access(), secret(), timeout()) -> {ok, token()} | {error, _}. 
+% -spec auth(access(), secret(), timeout(), claims()) -> {ok, token()} | {error, _}. 
+
+% auth(Access, Secret) ->
+%    [either ||
+%       permit_pubkey_io:lookup(scalar:s(Access)),
+%       permit_pubkey:authenticate(_, Secret)
+%    ].
+
+% auth(Access, Secret, TTL) ->
+%    [either ||
+%       permit_pubkey_io:lookup(scalar:s(Access)),
+%       permit_pubkey:authenticate(_, Secret, TTL)
+%    ].
+   
+% auth(Access, Secret, TTL, Roles) ->
+%    [either ||
+%       permit_pubkey_io:lookup(scalar:s(Access)),
+%       permit_pubkey:authenticate(_, Secret, TTL, Roles)
+%    ].
+
+%%
 %% create access token for identity bypass password
--spec issue(access(), timeout()) -> {ok, token()} | {error, _}. 
--spec issue(access(), timeout(), claims()) -> {ok, token()} | {error, _}. 
+% -spec issue(access(), timeout()) -> {ok, token()} | {error, _}. 
+% -spec issue(token(), timeout(), claims()) -> {ok, token()} | {error, _}. 
 
-issue(Access, TTL) ->
-   [either ||
-      permit_pubkey_io:lookup(scalar:s(Access)),
-      permit_token:new(_, TTL)
-   ].
+% issue(Access, TTL) ->
+%    [either ||
+%       permit_pubkey_io:lookup(scalar:s(Access)),
+%       permit_token:new(_, TTL)
+%    ].
 
-issue(Access, TTL, Claims) ->
-   [either ||
-      permit_pubkey_io:lookup(scalar:s(Access)),
-      permit_token:new(_, TTL, Claims)
-   ].
+% issue(Access, TTL, Claims) ->
+%    [either ||
+%       permit_pubkey_io:lookup(scalar:s(Access)),
+%       permit_token:new(_, TTL, Claims)
+%    ].
    
 %%
 %% validate access token
 -spec validate(token()) -> {ok, map()} | {error, _}.
 
 validate(Token) ->
-   [either ||
-      jwt:decode(Token, scalar:s(opts:val(secret, permit))),
-      fmap(lens:get(lens:map(<<"sub">>), _)),
-      permit_pubkey_io:lookup(_),
-      fmap(lens:get(permit_pubkey:secret(), _)),
-      permit_token:check(Token, _)
-   ].
+   permit_token:validate(Token).
 
 %%
 %%

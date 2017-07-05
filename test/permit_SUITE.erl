@@ -19,9 +19,9 @@
    update/1, update_notfound/1,
    lookup/1, lookup_notfound/1,
    revoke/1,
-   auth/1, auth_invalid_secret/1, auth_invalid_roles/1,
+   stateless/1, stateless_invalid_secret/1,
    pubkey/1,
-   issue/1, issue_invalid_roles/1
+   exchange/1
 ]).
 
 %%%----------------------------------------------------------------------------   
@@ -41,7 +41,7 @@ groups() ->
       %% 
       {libapi, [parallel], 
          [create, create_conflict, update, update_notfound, lookup, lookup_notfound, revoke, 
-          auth, auth_invalid_secret, auth_invalid_roles, pubkey, issue, issue_invalid_roles]}
+          stateless, stateless_invalid_secret, pubkey, exchange]}
    ].
 
 %%%----------------------------------------------------------------------------   
@@ -57,7 +57,6 @@ init_per_suite(Config) ->
 
 
 end_per_suite(_Config) ->
-   erlang:exit(whereis(permit), kill),
    application:stop(permit),
    ok.
 
@@ -134,11 +133,12 @@ revoke(_Config) ->
    {error, not_found} = permit:validate(Token).   
 
 %%
-auth(_Config) ->
-   {ok,    _} = permit:create("auth@example.com", "secret", 
-      #{<<"a">> => 1, <<"b">> => true, <<"c">> => <<"x">>, <<"d">> => false}),
+stateless(_Config) ->
+   {ok,    _} = permit:create("auth@example.com", "secret"),
+   {ok, TknA} = permit:stateless("auth@example.com", "secret", 3600,
+      #{<<"a">> => 1, <<"b">> => true, <<"c">> => <<"x">>, <<"d">> => false}
+   ),
 
-   {ok, TknA} = permit:auth("auth@example.com", "secret"),
    {ok, #{
       <<"sub">> := <<"auth@example.com">>,
       <<"exp">> := _,
@@ -146,38 +146,13 @@ auth(_Config) ->
       <<"b">>   := true,
       <<"c">>   := <<"x">>,
       <<"d">>   := false
-   }} = permit:validate(TknA),
-
-   {ok, TknB} = permit:auth("auth@example.com", "secret", 3600),
-   {ok, #{
-      <<"sub">> := <<"auth@example.com">>, 
-      <<"exp">> := _,
-      <<"a">>   := 1,
-      <<"b">>   := true,
-      <<"c">>   := <<"x">>,
-      <<"d">>   := false
-   }} = permit:validate(TknB),
-
-   {ok, TknC} = permit:auth("auth@example.com", "secret", 3600, 
-      #{<<"a">> => 5, <<"d">> => true}),
-   {ok, #{
-      <<"sub">> := <<"auth@example.com">>, 
-      <<"exp">> := _,
-      <<"a">>   := 5,
-      <<"d">>   := true
-   }} = permit:validate(TknC).
+   }} = permit:validate(TknA).
 
 %%
-auth_invalid_secret(_Config) ->
-   {ok, _} = permit:create("auth_secret@example.com", "secret", 
-      #{<<"a">> => 1, <<"b">> => true, <<"c">> => <<"x">>, <<"d">> => false}),
-   {error, unauthorized} = permit:auth("auth_secret@example.com", "unsecret").
-
-%%
-auth_invalid_roles(_Config) ->
-   {ok, _} = permit:create("auth_roles@example.com", "secret", 
-      #{<<"a">> => 1, <<"b">> => true, <<"c">> => <<"x">>, <<"d">> => false}),
-   {error, unauthorized} = permit:auth("auth_roles@example.com", "secret", 3600, #{<<"e">> => true}).
+stateless_invalid_secret(_Config) ->
+   {ok, _} = permit:create("auth_secret@example.com", "secret"),
+   {error, unauthorized} = permit:stateless("auth_secret@example.com", "unsecret", 3600,
+      #{<<"a">> => 1, <<"b">> => true, <<"c">> => <<"x">>, <<"d">> => false}).
 
 %%
 pubkey(_Config) ->
@@ -188,7 +163,7 @@ pubkey(_Config) ->
       <<"secret">> := Secret
    }} = permit:pubkey("pubkey@example.com"),
    
-   {ok, Token} = permit:auth(Access, Secret),
+   {ok, Token} = permit:stateless(Access, Secret, 3600, #{uid => true}),
    {ok, #{
       <<"sub">>    := Access,
       <<"exp">>    := _,
@@ -197,10 +172,10 @@ pubkey(_Config) ->
    }} = permit:validate(Token).
 
 %%
-issue(_Config) ->
+exchange(_Config) ->
    {ok, TknA} = permit:create("issue@example.com", "secret", 
       #{<<"a">> => 1, <<"b">> => true, <<"c">> => <<"x">>, <<"d">> => false}),   
-   {ok, TknB} = permit:issue("issue@example.com", 600, 
+   {ok, TknB} = permit:stateless(TknA, 600, 
       #{<<"a">> => 1, <<"b">> => true, <<"c">> => <<"x">>, <<"d">> => false}),
    {ok, #{
       <<"sub">> := <<"issue@example.com">>,
@@ -212,7 +187,7 @@ issue(_Config) ->
    }} = permit:validate(TknB).
 
 %%
-issue_invalid_roles(_Config) ->
+exchange_invalid_claims(_Config) ->
    {ok, TknA} = permit:create("token_roles@example.com", "secret",
       #{<<"a">> => 1, <<"b">> => true, <<"c">> => <<"x">>, <<"d">> => false}),   
-   {error, unauthorized} = permit:issue("token_roles@example.com", 3600, #{<<"e">> => true}).
+   {error, unauthorized} = permit:stateless(TknA, 3600, #{<<"e">> => true}).

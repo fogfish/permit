@@ -2,7 +2,6 @@
    report, 
    verbose, 
    {i, "include"}, 
-   {outdir, "ebin"},
-   debug_info,
-   {parse_transform, lager_transform} 
+   {outdir, "_build/default/lib/permit/ebin"},
+   debug_info
 ]}.

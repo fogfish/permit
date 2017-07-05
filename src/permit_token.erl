@@ -5,43 +5,61 @@
 -compile({parse_transform, category}).
 
 -export([
-   new/2,
-   new/3,
-   check/2
+   stateless/3,
+   revocable/3,
+   validate/1
 ]).
 
--define(ALG,   <<"HS256">>).
+-define(RS256,   <<"RS256">>).
+-define(HS256,   <<"HS256">>).
 
 %%
-%% create new token with given ttl and roles
-new(PubKey, TTL) ->
+%% create new stateless token with given ttl and claims
+stateless(PubKey, TTL, Claims) ->
    [either ||
-      permit_pubkey:claims(PubKey),
-      new(PubKey, TTL, _)
+      build_acl(PubKey, Claims),
+      stateless(TTL, _)
    ].
 
-new(PubKey, TTL, Claims) ->
-   Sub = lens:get(permit_pubkey:access(), PubKey),
+stateless(TTL, Claims) ->
    [either ||
-      acl(PubKey, TTL, Claims),
-      jwt:encode(
-         ?ALG,
-         #{
-            sub => Sub,
-            acl => _
-         },
-         TTL,
-         secret()
-      )
+      permit_config:secret(),
+      jwt:encode(?RS256, Claims, TTL, _)
    ].
 
-acl(PubKey, TTL, Claims) ->
+%%
+%% create new revocable token with given ttl and claims
+revocable(PubKey, TTL, Claims) ->
    [either ||
-      permit_pubkey:acl(PubKey, Claims),
-      build_acl(PubKey, _),
-      jwt:encode(?ALG, _, TTL, lens:get(permit_pubkey:secret(), PubKey))
+      jwt:encode(?HS256, #{}, TTL, lens:get(permit_pubkey:secret(), PubKey)),
+      fmap(Claims#{jwt => _}),
+      stateless(PubKey, TTL, _)
    ].
 
+
+%%
+%%
+validate(Token) ->
+   [either ||
+      permit_config:public(),
+      jwt:decode(Token, _),
+      validate_jwt(_)
+   ].
+
+validate_jwt(#{<<"jwt">> := JWT, <<"sub">> := Sub} = Claims) ->
+   [either ||
+      permit_pubkey_io:lookup(Sub),
+      fmap(lens:get(permit_pubkey:secret(), _)),
+      jwt:decode(JWT, _),
+      fmap(Claims)
+   ];
+
+validate_jwt(Claims) ->
+   {ok, Claims}.
+
+
+%%
+%%
 build_acl(_PubKey, Claims)
  when map_size(Claims) =:= 0 ->
    {error, unauthorized};
@@ -58,31 +76,3 @@ build_acl(PubKey, Claims) ->
       Master ->
          {ok, Acl#{master => Master}}
    end.
-
-% eitherT([]) -> {error, invalid_roles};
-% eitherT(Xs) -> {ok, Xs}.
-
-
-%%
-%% check validity of token
-check(Token, Secret) ->
-   [either ||
-      jwt:decode(Token, secret()),
-      decode_acl(_, Secret)
-   ].
-
-decode_acl(Token, Secret) ->
-   [either ||
-      fmap(lens:get(lens:map(<<"acl">>), Token)),
-      jwt:decode(_, Secret)
-   ].
-
-
-%%-----------------------------------------------------------------------------
-%%
-%% private
-%%
-%%-----------------------------------------------------------------------------
-
-secret() ->
-   scalar:s(opts:val(secret, permit)).

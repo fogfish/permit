@@ -15,7 +15,7 @@
 ]).
 
 %% unit tests
--export([new/1, auth/1, invalid_secret/1, invalid_roles/1]).
+-export([new/1, auth/1, invalid_secret/1, invalid_claims/1]).
 
 %%%----------------------------------------------------------------------------   
 %%%
@@ -33,7 +33,7 @@ groups() ->
       %%
       %% 
       {pubkey, [parallel], 
-         [new, auth, invalid_secret, invalid_roles]}
+         [new, auth, invalid_secret, invalid_claims]}
    ].
 
 %%%----------------------------------------------------------------------------   
@@ -89,9 +89,8 @@ auth(_Config) ->
    {ok, PubKey} = permit_pubkey:new(<<"access">>, <<"secret">>,
       #{<<"a">> => 1, <<"b">> => true, <<"c">> => <<"x">>}),
    {ok, _} = permit_pubkey:authenticate(PubKey, <<"secret">>),
-   {ok, _} = permit_pubkey:authenticate(PubKey, <<"secret">>, 3600),
-   {ok, _} = permit_pubkey:authenticate(PubKey, <<"secret">>, 3600, #{<<"a">> => 1}),
-   {ok, _} = permit_pubkey:authenticate(PubKey, <<"secret">>, 3600, #{<<"a">> => 1, <<"b">> => true}).
+   {ok, _} = permit_pubkey:authenticate(PubKey, <<"secret">>, #{<<"a">> => 1}),
+   {ok, _} = permit_pubkey:authenticate(PubKey, <<"secret">>, #{<<"a">> => 1, <<"b">> => true}).
 
 
 %%
@@ -102,9 +101,9 @@ invalid_secret(_Config) ->
 
 
 %%
-invalid_roles(_Config) ->
+invalid_claims(_Config) ->
    {ok, PubKey} = permit_pubkey:new(<<"access">>, <<"secret">>,
       #{<<"a">> => 1, <<"b">> => true, <<"c">> => <<"x">>}),
-   {error, unauthorized} = permit_pubkey:authenticate(PubKey, <<"secret">>, 3600, #{<<"d">> => 1}),
-   {error, unauthorized} = permit_pubkey:authenticate(PubKey, <<"secret">>, 3600, #{}).
+   {error, unauthorized} = permit_pubkey:authenticate(PubKey, <<"secret">>, #{<<"d">> => 1}),
+   {error, unauthorized} = permit_pubkey:authenticate(PubKey, <<"secret">>, #{}).
 
