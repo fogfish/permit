@@ -26,11 +26,6 @@
    stateless/4,
    revocable/3,
    revocable/4,
-   % auth/2, 
-   % auth/3, 
-   % auth/4,
-   % issue/2,
-   % issue/3,
    validate/1
 ]).
 -export_type([access/0, secret/0, token/0, claims/0, pubkey/0]).
@@ -201,49 +196,6 @@ revocable(Token, TTL, Claims) ->
       permit_token:revocable(_, TTL, Claims)
    ].
 
-
-
-%%
-%% Authenticate using unique access and secret to prove identity
-%% Returns a token bounded to given roles.
-% -spec auth(access(), secret()) -> {ok, token()} | {error, _}. 
-% -spec auth(access(), secret(), timeout()) -> {ok, token()} | {error, _}. 
-% -spec auth(access(), secret(), timeout(), claims()) -> {ok, token()} | {error, _}. 
-
-% auth(Access, Secret) ->
-%    [either ||
-%       permit_pubkey_io:lookup(scalar:s(Access)),
-%       permit_pubkey:authenticate(_, Secret)
-%    ].
-
-% auth(Access, Secret, TTL) ->
-%    [either ||
-%       permit_pubkey_io:lookup(scalar:s(Access)),
-%       permit_pubkey:authenticate(_, Secret, TTL)
-%    ].
-   
-% auth(Access, Secret, TTL, Roles) ->
-%    [either ||
-%       permit_pubkey_io:lookup(scalar:s(Access)),
-%       permit_pubkey:authenticate(_, Secret, TTL, Roles)
-%    ].
-
-%%
-%% create access token for identity bypass password
-% -spec issue(access(), timeout()) -> {ok, token()} | {error, _}. 
-% -spec issue(token(), timeout(), claims()) -> {ok, token()} | {error, _}. 
-
-% issue(Access, TTL) ->
-%    [either ||
-%       permit_pubkey_io:lookup(scalar:s(Access)),
-%       permit_token:new(_, TTL)
-%    ].
-
-% issue(Access, TTL, Claims) ->
-%    [either ||
-%       permit_pubkey_io:lookup(scalar:s(Access)),
-%       permit_token:new(_, TTL, Claims)
-%    ].
    
 %%
 %% validate access token
