@@ -32,7 +32,7 @@ stateless(TTL, Claims) ->
 revocable(PubKey, TTL, Claims) ->
    [either ||
       jwt:encode(?HS256, #{}, TTL, lens:get(permit_pubkey:secret(), PubKey)),
-      fmap(Claims#{jwt => _}),
+      fmap(Claims#{<<"rev">> => _}),
       stateless(PubKey, TTL, _)
    ].
 
@@ -46,12 +46,12 @@ validate(Token) ->
       validate_jwt(_)
    ].
 
-validate_jwt(#{<<"jwt">> := JWT, <<"sub">> := Sub} = Claims) ->
+validate_jwt(#{<<"rev">> := Rev, <<"sub">> := Sub} = Claims) ->
    [either ||
       permit_pubkey_io:lookup(Sub),
       fmap(lens:get(permit_pubkey:secret(), _)),
-      jwt:decode(JWT, _),
-      fmap(Claims)
+      jwt:decode(Rev, _),
+      fmap(Claims#{<<"rev">> => true})
    ];
 
 validate_jwt(Claims) ->

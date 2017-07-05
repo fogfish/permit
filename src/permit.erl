@@ -26,7 +26,8 @@
    stateless/4,
    revocable/3,
    revocable/4,
-   validate/1
+   validate/1,
+   validate/2
 ]).
 -export_type([access/0, secret/0, token/0, claims/0, pubkey/0]).
 
@@ -200,9 +201,25 @@ revocable(Token, TTL, Claims) ->
 %%
 %% validate access token
 -spec validate(token()) -> {ok, map()} | {error, _}.
+-spec validate(token(), claims()) -> {ok, map()} | {error, _}.
 
 validate(Token) ->
    permit_token:validate(Token).
+
+validate(Token, Claims) ->
+   [either ||
+      permit_token:validate(Token),
+      match(_, Claims)
+   ].       
+
+match(Claims, Required) ->
+   case maps:with(maps:keys(Required), Claims) of
+      Required ->
+         {ok, Claims};
+      _ ->
+         {error, forbidden}
+   end.
+      
 
 %%
 %%
