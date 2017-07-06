@@ -60,10 +60,6 @@ validate_jwt(Claims) ->
 
 %%
 %%
-build_acl(_PubKey, Claims)
- when map_size(Claims) =:= 0 ->
-   {error, unauthorized};
-
 build_acl(PubKey, Claims) ->
    Acl = Claims#{
       tji => base64url:encode(uid:encode(uid:g())),

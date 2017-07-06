@@ -14,6 +14,8 @@
 
 -export([start/0, ephemeral/0]).
 -export([
+   config/0,
+   public/0,
    create/2, 
    create/3,
    update/2,
@@ -27,7 +29,10 @@
    revocable/3,
    revocable/4,
    validate/1,
-   validate/2
+   include/2,
+   exclude/2,
+   equals/2,
+   default_claims/0
 ]).
 -export_type([access/0, secret/0, token/0, claims/0, pubkey/0]).
 
@@ -57,6 +62,15 @@ ephemeral() ->
       {pts,  {pts, start_link, [permit, Spec]}, permanent, 5000, supervisor, dynamic}
    ).
 
+%%
+%% configure library keys
+config() ->
+   permit_config:config().
+
+%%
+%% return public key
+public() ->
+   permit_config:public().
 
 %%
 %% Create a new pubkey pair, declare unique access and secret identity.
@@ -201,34 +215,76 @@ revocable(Token, TTL, Claims) ->
 %%
 %% validate access token
 -spec validate(token()) -> {ok, map()} | {error, _}.
--spec validate(token(), claims()) -> {ok, map()} | {error, _}.
 
 validate(Token) ->
    permit_token:validate(Token).
 
-validate(Token, Claims) ->
+%%
+%% token includes claims
+-spec include(token(), claims()) -> {ok, map()} | {error, _}.
+
+include(Token, Claims) ->
    [either ||
       permit_token:validate(Token),
-      match(_, Claims)
-   ].       
+      include_it(_, Claims)
+   ].
 
-match(Claims, Required) ->
+include_it(Claims, Required) ->
    case maps:with(maps:keys(Required), Claims) of
       Required ->
          {ok, Claims};
       _ ->
          {error, forbidden}
    end.
-      
+
+%%
+%% token exclude claims
+-spec exclude(token(), claims()) -> {ok, map()} | {error, _}.
+
+exclude(Token, Claims) ->
+   [either ||
+      permit_token:validate(Token),
+      exclude_it(_, Claims)
+   ].
+
+exclude_it(Claims, Required) ->
+   case maps:with(maps:keys(Required), Claims) of
+      Required ->
+         {error, forbidden};
+      _ ->
+         {ok, Claims}
+   end.
+
+%%
+%% claims are exactly equals to token claims
+%% Note: it skips a check of exp, iss, sub, tji
+-spec equals(token(), claims()) -> {ok, map()} | {error, _}.
+
+equals(Token, Claims) ->
+   [either ||
+      permit_token:validate(Token),
+      equals_match(_, Claims)
+   ].
+
+equals_match(Claims, Required) ->
+   HasClaim = maps:without([<<"exp">>, <<"iss">>, <<"sub">>, <<"tji">>], Claims),
+   A = maps:keys(HasClaim),
+   case maps:keys(Required) of
+      A ->
+         include_it(Claims, Required);
+      _ ->
+         {error, forbidden}
+   end.
+
 
 %%
 %%
 default_claims() ->
    [$. ||
-      opts:val(roles, permit),
+      opts:val(claims, permit),
       scalar:s(_),
-      binary:split(_, <<$ >>, [trim, global]),
-      lists:map(fun(X) -> {X, true} end, _),
+      binary:split(_, <<$&>>, [trim, global]),
+      lists:map(fun(X) -> [Key, Val] = binary:split(X, <<$=>>), {Key, scalar:decode(Val)} end, _),
       maps:from_list(_)
    ].
 
