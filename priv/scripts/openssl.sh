@@ -2,6 +2,8 @@
 set -u
 set -e
 
+export PATH=$PATH:/usr/local/ssl/bin
+
 case $1 in
    secret)
       test -e $2/secret.pem || openssl genrsa -out $2/secret.pem 2048
