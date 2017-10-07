@@ -181,7 +181,7 @@ stateless(Access, Secret, TTL, Claims) ->
 stateless(Token, TTL, Claims) ->
    [either ||
       permit:validate(Token),
-      category:maybeT(unauthorized,
+      category:optionT(unauthorized,
          lens:get(lens:map(<<"sub">>), _)
       ),
       permit_pubkey_io:lookup(_),
@@ -204,7 +204,7 @@ revocable(Access, Secret, TTL, Claims) ->
 revocable(Token, TTL, Claims) ->
    [either ||
       permit:validate(Token),
-      category:maybeT(unauthorized,
+      category:optionT(unauthorized,
          lens:get(lens:map(<<"sub">>), _)
       ),
       permit_pubkey_io:lookup(_),
