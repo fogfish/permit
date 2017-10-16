@@ -61,14 +61,46 @@ validate_jwt(Claims) ->
 %%
 %%
 build_acl(PubKey, Claims) ->
-   Acl = Claims#{
-      tji => base64url:encode(uid:encode(uid:g())),
-      iss => scalar:s(opts:val(issuer, permit)),
-      sub => lens:get(permit_pubkey:access(), PubKey)
-   },
+   {ok, [identity ||
+      tji(Claims),
+      iss(_),
+      aud(_),
+      sub(PubKey, _),
+      idp(PubKey, _)
+   ]}.
+
+%%
+%%
+tji(Claims) ->
+   Claims#{<<"tji">> => base64url:encode(uid:encode(uid:g()))}.
+
+%%
+%%
+iss(#{<<"iss">> := _} = Claims) ->
+   Claims;
+iss(Claims) ->
+   Claims#{<<"iss">> => scalar:s(opts:val(issuer, permit))}.
+
+%%
+%%
+aud(#{<<"aud">> := _} = Claims) ->
+   Claims;
+aud(Claims) ->
+   Claims#{<<"aud">> => scalar:s(opts:val(audience, permit))}.
+
+%%
+%%
+sub(PubKey, Claims) ->
+   Claims#{<<"sub">> => lens:get(permit_pubkey:access(), PubKey)}.
+
+%%
+%%
+idp(PubKey, Claims) ->
    case lens:get(permit_pubkey:master(), PubKey) of
       undefined ->
-         {ok, Acl};
-      Master ->
-         {ok, Acl#{master => Master}}
+         Claims;
+      Idp ->
+         Claims#{<<"idp">> => Idp}
    end.
+
+

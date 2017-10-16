@@ -1,8 +1,8 @@
 
 %%
 %% length of access / secret keys
--define(CONFIG_ACCESS, 15).
--define(CONFIG_SECRET, 30).
+-define(CONFIG_ACCESS, 30).
+-define(CONFIG_SECRET, 60).
 
 %%
 %% version of token

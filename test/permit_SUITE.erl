@@ -165,10 +165,10 @@ pubkey(_Config) ->
    
    {ok, Token} = permit:stateless(Access, Secret, 3600, #{uid => true}),
    {ok, #{
-      <<"sub">>    := Access,
-      <<"exp">>    := _,
-      <<"uid">>    := true,
-      <<"master">> := <<"pubkey@example.com">>
+      <<"sub">> := Access,
+      <<"exp">> := _,
+      <<"uid">> := true,
+      <<"idp">> := <<"pubkey@example.com">>
    }} = permit:validate(Token).
 
 %%

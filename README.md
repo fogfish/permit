@@ -17,3 +17,17 @@ The library implements a high-level api for security tokens management. The libr
 
 **Access identity** is an access/secret pair that is linked to master access/secret. The access identity allows to provision the access to system without exposing the original keys to third-party services.  
 
+
+## Token structure
+
+**`iss`** identifies the security token service (STS) that constructs and returns the token.
+
+**`aud`** identifies intended recipient of the token. The application that receives the token must verify that the audience value is correct and reject any tokens intended for a different audience. 
+
+**`sub`** identifies the principal about which the token asserts information, such as the user of an application.
+
+**`idp`** records the identity provider that authenticated the subject of the token.
+
+**`app`** identifies the application that is using the token to access a resource. 
+
+**`rev`**  identifies the revocable token 
