@@ -36,11 +36,11 @@ nonce()  -> lens:map(<<"nonce">>,   undefined).
 new(Access, Secret, Claims) ->
    Nonce = permit_hash:random(?CONFIG_SALT),
    {ok, [$.||
-      fmap(#{}),
+      cats:unit(#{}),
       lens:put(access(), Access, _),
       lens:put(secret(), base64url:encode(permit_hash:sign(Secret, Nonce)), _),
       lens:put(nonce(), base64url:encode(Nonce), _),
-      fmap(maps:merge(_, Claims))
+      cats:unit(maps:merge(_, Claims))
    ]}.
 
 %%
@@ -66,7 +66,7 @@ authenticate(PubKey, Secret, Claims) ->
    [either ||
       auth_signature(PubKey, Secret),
       auth_claims(_, Claims),
-      fmap(PubKey)
+      cats:unit(PubKey)
    ].
 
 auth_signature(PubKey, Secret) ->
@@ -83,7 +83,7 @@ auth_signature(PubKey, Secret) ->
 auth_claims(PubKey, Claims) ->
    [either ||
       claims(PubKey),
-      fmap(maps:with(maps:keys(_), Claims)),
+      cats:unit(maps:with(maps:keys(_), Claims)),
       is_non_empty_claim(_)
    ].
 
@@ -100,5 +100,5 @@ is_non_empty_claim(X) ->
 acl(PubKey, Claims) ->
    [either ||
       claims(PubKey),
-      fmap(maps:with(maps:keys(_), Claims))
+      cats:unit(maps:with(maps:keys(_), Claims))
    ].

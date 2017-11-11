@@ -153,14 +153,14 @@ pubkey(Master, Claims) ->
    [either ||
       permit:lookup(Master),
       permit_pubkey:new(Access, Secret, Claims),
-      fmap(lens:put(permit_pubkey:master(), scalar:s(Master), _)),
+      cats:unit(lens:put(permit_pubkey:master(), scalar:s(Master), _)),
       permit_pubkey_io:create(_),
       pubkey_access_pair_new(_, Access, Secret)
    ].
 
 pubkey_access_pair_new(_PubKey, Access, Secret) ->
    {ok, [$. ||
-      fmap(#{}),
+      cats:unit(#{}),
       lens:put(permit_pubkey:access(), Access, _),
       lens:put(permit_pubkey:secret(), Secret, _)
    ]}.
@@ -181,7 +181,7 @@ stateless(Access, Secret, TTL, Claims) ->
 stateless(Token, TTL, Claims) ->
    [either ||
       permit:validate(Token),
-      category:optionT(unauthorized,
+      cats:optionT(unauthorized,
          lens:get(lens:map(<<"sub">>), _)
       ),
       permit_pubkey_io:lookup(_),
@@ -204,7 +204,7 @@ revocable(Access, Secret, TTL, Claims) ->
 revocable(Token, TTL, Claims) ->
    [either ||
       permit:validate(Token),
-      category:optionT(unauthorized,
+      cats:optionT(unauthorized,
          lens:get(lens:map(<<"sub">>), _)
       ),
       permit_pubkey_io:lookup(_),
