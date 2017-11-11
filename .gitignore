@@ -9,7 +9,6 @@
 *.gz
 _build/
 rebar3
-rebar.lock
 *.sublime-*
 tests/
 
