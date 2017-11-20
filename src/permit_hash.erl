@@ -18,7 +18,7 @@ random(N) ->
 %%
 %% generate random N-byte key
 key(N) ->
-   base64:encode(random(N)).
+   base64url:encode(random(N)).
 
 %% 
 %% sign password using given salt
