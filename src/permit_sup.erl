@@ -22,7 +22,7 @@ start_link() ->
 init([]) ->   
    {ok,
       {
-         {one_for_one, 4, 1800},
+         {one_for_one, 6, 900},
          [
             ?CHILD(worker, permit_config)
          ]
