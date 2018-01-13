@@ -23,10 +23,10 @@
 
 %%
 %% pubkey attributes 
-access() -> lens:map(<<"access">>,  undefined).
-secret() -> lens:map(<<"secret">>,  undefined).
-master() -> lens:map(<<"master">>,  undefined).
-nonce()  -> lens:map(<<"nonce">>,   undefined).
+access() -> lens:at(<<"access">>,  undefined).
+secret() -> lens:at(<<"secret">>,  undefined).
+master() -> lens:at(<<"master">>,  undefined).
+nonce()  -> lens:at(<<"nonce">>,   undefined).
 
 
 %%

@@ -182,7 +182,7 @@ stateless(Token, TTL, Claims) ->
    [either ||
       permit:validate(Token),
       cats:optionT(unauthorized,
-         lens:get(lens:map(<<"sub">>), _)
+         lens:get(lens:at(<<"sub">>), _)
       ),
       permit_pubkey_io:lookup(_),
       permit_token:stateless(_, TTL, Claims)
@@ -205,7 +205,7 @@ revocable(Token, TTL, Claims) ->
    [either ||
       permit:validate(Token),
       cats:optionT(unauthorized,
-         lens:get(lens:map(<<"sub">>), _)
+         lens:get(lens:at(<<"sub">>), _)
       ),
       permit_pubkey_io:lookup(_),
       permit_token:revocable(_, TTL, Claims)

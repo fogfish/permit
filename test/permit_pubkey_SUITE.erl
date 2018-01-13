@@ -79,9 +79,9 @@ new(_Config) ->
    Nonce  = base64url:decode(lens:get(permit_pubkey:nonce(), PubKey)),
    Secret = permit_hash:sign(<<"secret">>, Nonce),
    Secret = base64url:decode(lens:get(permit_pubkey:secret(), PubKey)),
-   1      = lens:get(lens:map(<<"a">>), PubKey),
-   true   = lens:get(lens:map(<<"b">>), PubKey),
-   <<"x">>= lens:get(lens:map(<<"c">>), PubKey).
+   1      = lens:get(lens:at(<<"a">>), PubKey),
+   true   = lens:get(lens:at(<<"b">>), PubKey),
+   <<"x">>= lens:get(lens:at(<<"c">>), PubKey).
 
 
 %%
