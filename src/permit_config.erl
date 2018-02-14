@@ -1,8 +1,9 @@
 %% @doc
 %%    
 -module(permit_config).
+-include_lib("public_key/include/OTP-PUB-KEY.hrl").
 
--export([public/0, secret/0, config/0]).
+-export([public/0, secret/0]).
 -export([
    start_link/0,
    init/1,
@@ -13,8 +14,7 @@
 %%
 -record(state, {
    public = undefined :: binary(),
-   secret = undefined :: binary(),
-   reload = undefined :: tempus:timer()
+   secret = undefined :: binary()
 }).
 
 %%
@@ -25,8 +25,6 @@ public() ->
 secret() ->
    pipe:call(?MODULE, secret).
 
-config() ->
-   pipe:call(?MODULE, config).
 
 %%
 %%
@@ -35,11 +33,7 @@ start_link() ->
 
 init(_) ->
    {ok, handle, 
-      seed(
-         #state{
-            reload = tempus:timer(opts:val(reload, permit), config)
-         }
-      )
+      seed(#state{})
    }.
 
 free(_, _) ->
@@ -51,61 +45,13 @@ handle(public, Pipe, #state{public = Public} = State) ->
 
 handle(secret, Pipe, #state{secret = Secret} = State) ->
    pipe:ack(Pipe, {ok, Secret}),
-   {next_state, handle, State};
-
-handle(config, _, #state{reload = T} = State) ->
-   {next_state, handle, seed(State#state{reload = tempus:reset(T, config)})}.
+   {next_state, handle, State}.
 
 %%
 %%
 seed(State) ->
-   seed_public( seed_secret(State) ).
-
-seed_secret(State) ->
-   Uri = uri:new(opts:val(secret, permit)),
-   State#state{secret = seed_key(Uri)}.
-
-seed_public(State) ->
-   Uri = uri:new(opts:val(public, permit)),
-   State#state{public = seed_key(Uri)}.
-
-seed_key({uri, data, _} = Uri) ->
-   Key  = uri:path(Uri),
-   [ RSAEntry ] = public_key:pem_decode(base64:decode(Key)),
-   public_key:pem_entry_decode(RSAEntry);
-   
-seed_key({uri, file, _} = Uri) ->
-   Path = uri:path(Uri),
-   {ok, Key} = file:read_file(Path),
-   [ RSAEntry ] = public_key:pem_decode(base64:decode(Key)),
-   public_key:pem_entry_decode(RSAEntry);
-
-seed_key({uri, https, _} = Uri) ->
-   {ok, Json} = esh:run([sh, which(http), uri:s(Uri), "2> /dev/null"]),
-   {ok, Key}  = jwk:decode(<<"jwt">>, scalar:s(Json)),
-   Key;
-
-seed_key({uri, [openssl, secret], _} = Uri) ->
-   {ok, PEM} = esh:run([sh, which(openssl), secret, uri:path(Uri), "2> /dev/null"]),
-   [ RSAEntry ] = public_key:pem_decode(scalar:s(PEM)),
-   public_key:pem_entry_decode(RSAEntry);
-
-seed_key({uri, [openssl, public], _} = Uri) ->
-   {ok, PEM} = esh:run([sh, which(openssl), public, uri:path(Uri), "2> /dev/null"]),
-   [ RSAEntry ] = public_key:pem_decode(scalar:s(PEM)),
-   public_key:pem_entry_decode(RSAEntry);
-
-seed_key({uri, Schema, _} = Uri) ->
-   {ok, Json} = esh:run([sh, which(Schema), uri:s(Uri), "2> /dev/null"]),
-   {ok, Key}  = jwk:decode(<<"jwt">>, scalar:s(Json)),
-   Key.
-
-%%
-%%
-which(Script) ->
-   filename:join([
-      code:priv_dir(permit),
-      "scripts",
-      scalar:c(Script) ++ ".sh"
-   ]).
-
+   #'RSAPrivateKey'{
+      modulus = N, 
+      publicExponent = E} = Secret = public_key:generate_key({rsa, 2048, 65537}),
+   Public = #'RSAPublicKey'{modulus = N, publicExponent = E},
+   State#state{public = Public, secret = Secret}.

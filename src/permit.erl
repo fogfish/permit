@@ -14,7 +14,6 @@
 
 -export([start/0, ephemeral/0]).
 -export([
-   config/0,
    public/0,
    create/2, 
    create/3,
@@ -61,11 +60,6 @@ ephemeral() ->
    supervisor:start_child(permit_sup, 
       {pts,  {pts, start_link, [permit, Spec]}, permanent, 5000, supervisor, dynamic}
    ).
-
-%%
-%% configure library keys
-config() ->
-   permit_config:config().
 
 %%
 %% return public key

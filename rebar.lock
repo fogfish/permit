@@ -1,6 +1,5 @@
 {"1.1.0",
-[{<<"base64url">>,{pkg,<<"base64url">>,<<"0.0.1">>},1},
- {<<"datum">>,{pkg,<<"datum">>,<<"4.1.0">>},0},
+[{<<"datum">>,{pkg,<<"datum">>,<<"4.2.0">>},0},
  {<<"esh">>,
   {git,"https://github.com/fogfish/esh",
        {ref,"0c7189352c72021963356e998164bab8bb64b545"}},
@@ -13,11 +12,7 @@
   {git,"https://github.com/fogfish/hash",
        {ref,"043931773300eeff736adfc92e1ee9e20204ba84"}},
   0},
- {<<"jsx">>,{pkg,<<"jsx">>,<<"2.8.0">>},1},
- {<<"jwt">>,
-  {git,"https://github.com/artemeff/jwt.git",
-       {ref,"2b019c20057d5fddcd220f7e8fc929d326d2fd38"}},
-  0},
+ {<<"jwt">>,{pkg,<<"jwt">>,<<"0.1.4">>},0},
  {<<"meck">>,
   {git,"https://github.com/eproxus/meck",
        {ref,"7b78e29cba837cdec88bfca5c6c3b75baf40d66f"}},
@@ -40,7 +35,6 @@
   0}]}.
 [
 {pkg_hash,[
- {<<"base64url">>, <<"36A90125F5948E3AFD7BE97662A1504B934DD5DAC78451CA6E9ABF85A10286BE">>},
- {<<"datum">>, <<"9ADA6E7070DE528E619FFBA2EE451C4734F6AFEF8379753CEE38B48154B9C75F">>},
- {<<"jsx">>, <<"749BEC6D205C694AE1786D62CEA6CC45A390437E24835FD16D12D74F07097727">>}]}
+ {<<"datum">>, <<"13354CDA48E54E12A2160632EF7270452E3147C8F17A4AE4BED106E55F146478">>},
+ {<<"jwt">>, <<"AACB95708418CBD1D3AA65F3263CABA934B422F086EFD8930F92EF1BC5CF5324">>}]}
 ].
