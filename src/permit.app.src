@@ -13,7 +13,6 @@
         ,uid
         ,pts
         ,jwt
-        ,esh
       ]},
       {mod, {permit_app, []}},
       {env, []}
