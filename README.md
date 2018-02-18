@@ -17,6 +17,7 @@ The library implements a high-level api for security tokens management. The libr
 
 **Access identity** is an access/secret pair that is linked to master access/secret. The access identity allows to provision the access to system without exposing the original keys to third-party services.  
 
+**Only OTP/20.x** or later due to different behavior of public_key:generate_key/1
 
 ## Token structure
 
