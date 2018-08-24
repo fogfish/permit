@@ -51,5 +51,9 @@ handle(secret, Pipe, #state{secret = Secret} = State) ->
 %%
 %%
 seed(#state{provider = Provider} = State) ->
-   {Public, Secret} = Provider:keypair(),
-   State#state{public = Public, secret = Secret}.
+   case Provider:keypair() of
+      {ok, Public, Secret} ->
+         State#state{public = Public, secret = Secret};
+      {ok, Public} ->
+         State#state{public = Public}
+   end.

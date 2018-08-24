@@ -10,4 +10,4 @@ keypair() ->
       modulus = N, 
       publicExponent = E} = Secret = public_key:generate_key({rsa, 2048, 65537}),
    Public = #'RSAPublicKey'{modulus = N, publicExponent = E},
-   {Public, Secret}.
+   {ok, Public, Secret}.
