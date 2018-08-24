@@ -1,7 +1,6 @@
 %% @doc
 %%    
 -module(permit_config).
--include_lib("public_key/include/OTP-PUB-KEY.hrl").
 
 -export([public/0, secret/0]).
 -export([
@@ -13,8 +12,9 @@
 
 %%
 -record(state, {
-   public = undefined :: binary(),
-   secret = undefined :: binary()
+   provider = undefined :: binary(),
+   public   = undefined :: binary(),
+   secret   = undefined :: binary()
 }).
 
 %%
@@ -33,8 +33,9 @@ start_link() ->
 
 init(_) ->
    {ok, handle, 
-      seed(#state{})
+      seed(#state{provider = opts:val(keypair, permit_config_rsa, permit)})
    }.
+
 
 free(_, _) ->
    ok.
@@ -49,9 +50,6 @@ handle(secret, Pipe, #state{secret = Secret} = State) ->
 
 %%
 %%
-seed(State) ->
-   #'RSAPrivateKey'{
-      modulus = N, 
-      publicExponent = E} = Secret = public_key:generate_key({rsa, 2048, 65537}),
-   Public = #'RSAPublicKey'{modulus = N, publicExponent = E},
+seed(#state{provider = Provider} = State) ->
+   {Public, Secret} = Provider:keypair(),
    State#state{public = Public, secret = Secret}.
