@@ -7,7 +7,8 @@
 -export([
    stateless/3,
    revocable/3,
-   validate/1
+   validate/1,
+   claims/1
 ]).
 
 -define(RS256,   <<"RS256">>).
@@ -38,7 +39,7 @@ revocable(PubKey, TTL, Claims) ->
 
 
 %%
-%%
+%% requires access to secret key of originator
 validate(Token) ->
    [either ||
       permit_config:public(),
@@ -55,6 +56,20 @@ validate_jwt(#{<<"rev">> := Rev, <<"sub">> := Sub} = Claims) ->
    ];
 
 validate_jwt(Claims) ->
+   {ok, Claims}.
+
+%%
+%%
+claims(Token) ->
+   [either ||
+      permit_config:public(),
+      jwt:decode(Token, _),
+      check_jwt_claims(_)
+   ].
+
+check_jwt_claims(#{<<"rev">> := _} = Claims) ->
+   {ok, Claims#{<<"rev">> => true}};
+check_jwt_claims(Claims) ->
    {ok, Claims}.
 
 

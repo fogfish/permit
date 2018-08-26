@@ -28,6 +28,7 @@
    revocable/3,
    revocable/4,
    validate/1,
+   claims/1,
    include/2,
    exclude/2,
    equals/2,
@@ -207,11 +208,22 @@ revocable(Token, TTL, Claims) ->
 
    
 %%
-%% validate access token
+%% Deep validation of access token, checks if revocation flag is valid
+%% requires access to secret key 
 -spec validate(token()) -> {ok, map()} | {error, _}.
 
 validate(Token) ->
    permit_token:validate(Token).
+
+
+%%
+%% validate access token, skips revocation flag
+%% uses stateless methods of validation 
+-spec claims(token()) -> {ok, map()} | {error, _}.
+
+claims(Token) ->
+   permit_token:claims(Token).
+
 
 %%
 %% token includes claims
@@ -219,7 +231,7 @@ validate(Token) ->
 
 include(Token, Claims) ->
    [either ||
-      permit_token:validate(Token),
+      permit_token:claims(Token),
       include_it(_, Claims)
    ].
 
@@ -237,7 +249,7 @@ include_it(Claims, Required) ->
 
 exclude(Token, Claims) ->
    [either ||
-      permit_token:validate(Token),
+      permit_token:claims(Token),
       exclude_it(_, Claims)
    ].
 
@@ -256,7 +268,7 @@ exclude_it(Claims, Required) ->
 
 equals(Token, Claims) ->
    [either ||
-      permit_token:validate(Token),
+      permit_token:claims(Token),
       equals_match(_, Claims)
    ].
 
