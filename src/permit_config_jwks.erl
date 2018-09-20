@@ -17,7 +17,7 @@ fetch() ->
    [m_http ||
       _ > "GET " ++ scalar:c(opts:val(jwks, permit)),
       _ > "Accept: application/json",
-      _ > "Connection: close",
+      _ > "Connection: keep-alive",
 
       _ < 200,
       _ < '*'
