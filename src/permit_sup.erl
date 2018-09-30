@@ -2,7 +2,10 @@
 -behaviour(supervisor).
 
 -export([
-   start_link/0, init/1
+   start_link/0,
+   init/1,
+   config/0,
+   ephemeral/0
 ]).
 
 %%
@@ -23,8 +26,23 @@ init([]) ->
    {ok,
       {
          {one_for_one, 6, 900},
-         [
-            ?CHILD(worker, permit_config)
-         ]
+         []
       }
    }.
+
+%%
+%%
+config() ->
+   supervisor:start_child(?MODULE, ?CHILD(worker, permit_config)).
+
+%%
+%%
+ephemeral() ->
+   supervisor:start_child(?MODULE, ?CHILD(supervisor, pts, [permit, spec()])).
+
+spec() ->
+   [
+      'read-through',
+      {factory, temporary},
+      {entity,  {permit_pubkey_io, start_link, [undefined]}}
+   ].

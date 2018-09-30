@@ -12,8 +12,10 @@
 -include("permit.hrl").
 -compile({parse_transform, category}).
 
--export([start/0, ephemeral/0]).
+-export([start/0]).
 -export([
+   config/0,
+   ephemeral/0,
    public/0,
    create/2, 
    create/3,
@@ -51,16 +53,14 @@ start() ->
    applib:boot(?MODULE, code:where_is_file("app.config")).
 
 %%
+%% configure library
+config() ->
+   permit_sup:config().
+
+%%
 %% enable ephemeral mode for permit
 ephemeral() ->
-   Spec = [
-      'read-through',
-      {factory, temporary},
-      {entity,  {permit_pubkey_io, start_link, [undefined]}}
-   ],
-   supervisor:start_child(permit_sup, 
-      {pts,  {pts, start_link, [permit, Spec]}, permanent, 5000, supervisor, dynamic}
-   ).
+   permit_sup:ephemeral().
 
 %%
 %% return public key

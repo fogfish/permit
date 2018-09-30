@@ -43,6 +43,7 @@ groups() ->
 %%%----------------------------------------------------------------------------   
 init_per_suite(Config) ->
    permit:start(),
+   {ok, _} = permit:config(),
    Config.
 
 

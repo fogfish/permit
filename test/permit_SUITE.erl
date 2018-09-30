@@ -51,8 +51,9 @@ groups() ->
 %%%----------------------------------------------------------------------------   
 init_per_suite(Config) ->
    permit:start(),
+   {ok, _} = permit:config(),
    {ok, Pid} = permit:ephemeral(),
-   erlang:unlink(Pid),
+   % erlang:unlink(Pid),
    Config.
 
 
