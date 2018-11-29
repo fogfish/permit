@@ -66,7 +66,7 @@ seed(#state{provider = Provider} = State) ->
 %%
 %%
 refresh() ->
-   refresh(opts:val(ttl_keypair, undefined, permit)).
+   refresh(scalar:i(opts:val(ttl_keypair, undefined, permit))).
 
 refresh(undefined) ->
    ok;
