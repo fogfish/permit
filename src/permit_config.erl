@@ -32,6 +32,7 @@ start_link() ->
    pipe:start_link({local, ?MODULE}, ?MODULE, [], []).   
 
 init(_) ->
+   refresh(),
    {ok, handle, 
       seed(#state{provider = opts:val(keypair, permit_config_rsa, permit)})
    }.
@@ -46,7 +47,11 @@ handle(public, Pipe, #state{public = Public} = State) ->
 
 handle(secret, Pipe, #state{secret = Secret} = State) ->
    pipe:ack(Pipe, {ok, Secret}),
-   {next_state, handle, State}.
+   {next_state, handle, State};
+
+handle(seed, _, State) ->
+   refresh(),
+   {next_state, handle, seed(State)}.
 
 %%
 %%
@@ -57,3 +62,14 @@ seed(#state{provider = Provider} = State) ->
       {ok, Public} ->
          State#state{public = Public}
    end.
+
+%%
+%%
+refresh() ->
+   refresh(opts:val(ttl_keypair, undefined, permit)).
+
+refresh(undefined) ->
+   ok;
+refresh(T) ->
+   erlang:send_after(T, self(), seed).
+
