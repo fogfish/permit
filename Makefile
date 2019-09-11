@@ -1,7 +1,5 @@
-
 APP = permit
-ORG = fogfish
+ORG = 
 URI = 
 
-include erlang.mk
-
+include beam.mk

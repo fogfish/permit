@@ -66,10 +66,10 @@ seed(#state{provider = Provider} = State) ->
 %%
 %%
 refresh() ->
-   refresh(scalar:i(opts:val(ttl_keypair, undefined, permit))).
-
-refresh(undefined) ->
-   ok;
-refresh(T) ->
-   erlang:send_after(T, self(), seed).
+   case opts:val(ttl_keypair, undefined, permit) of
+      undefined ->
+         ok;
+      T ->
+         erlang:send_after(scalar:i(T), self(), seed)
+   end.
 
