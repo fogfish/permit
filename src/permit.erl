@@ -14,8 +14,6 @@
 
 -export([start/0]).
 -export([
-   % config/0,
-   % ephemeral/0,
    public/0,
    create/2, 
    create/3,
@@ -51,16 +49,6 @@
 %%
 start() ->
    applib:boot(?MODULE, code:where_is_file("app.config")).
-
-% %%
-% %% configure library
-% config() ->
-%    permit_sup:config().
-
-% %%
-% %% enable ephemeral mode for permit
-% ephemeral() ->
-%    permit_sup:ephemeral().
 
 %%
 %% return public key

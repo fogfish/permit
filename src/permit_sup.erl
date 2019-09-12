@@ -6,9 +6,8 @@
 -include("permit.hrl").
 
 -export([
-   start_link/0,
-   init/1,
-   config/0
+   start_link/0
+,  init/1
 ]).
 
 %%
@@ -67,15 +66,3 @@ storage() ->
 %%
 config() ->
    [?CHILD(worker, permit_config)].
-
-%%
-%%
-% ephemeral() ->
-%    supervisor:start_child(?MODULE, )).
-
-% spec() ->
-%    [
-%       'read-through',
-%       {factory, temporary},
-%       {entity,  {permit_pubkey_io, start_link, [undefined]}}
-%    ].
