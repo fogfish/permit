@@ -14,8 +14,8 @@
 
 -export([start/0]).
 -export([
-   config/0,
-   ephemeral/0,
+   % config/0,
+   % ephemeral/0,
    public/0,
    create/2, 
    create/3,
@@ -52,15 +52,15 @@
 start() ->
    applib:boot(?MODULE, code:where_is_file("app.config")).
 
-%%
-%% configure library
-config() ->
-   permit_sup:config().
+% %%
+% %% configure library
+% config() ->
+%    permit_sup:config().
 
-%%
-%% enable ephemeral mode for permit
-ephemeral() ->
-   permit_sup:ephemeral().
+% %%
+% %% enable ephemeral mode for permit
+% ephemeral() ->
+%    permit_sup:ephemeral().
 
 %%
 %% return public key
@@ -86,11 +86,8 @@ create({iri, _, _} = Access, Secret, Claims)
       permit_pubkey_db:create(_),
       permit_pubkey:authenticate(_, Secret),
       permit_token:revocable(_, ?CONFIG_TTL_ACCESS, Claims)
-   ];
+   ].
 
-create(Access, Secret, Roles) ->
-   create(scalar:s(Access), scalar:s(Secret), Roles).
- 
 %%  
 %% Update an existed pubkey pair, use unique access to substitute secret key
 %% all allocated tokens becomes invalid

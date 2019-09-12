@@ -37,8 +37,8 @@ authenticate(#pubkey{} = PubKey, Secret) ->
    ].
 
 auth_signature(#pubkey{nonce = Nonce, secret = SignA} = PubKey, Secret) ->
-   SignB  = permit_hash:sign(Secret, Nonce),
-   case permit_hash:eq(SignA, SignB) of
+   SignB  = permit_hash:sign(Secret, base64url:decode(Nonce)),
+   case permit_hash:eq(base64url:decode(SignA), SignB) of
       true  ->
          {ok, PubKey};
       false ->

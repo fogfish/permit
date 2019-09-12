@@ -95,28 +95,21 @@ tji(Claims) ->
 iss(#{<<"iss">> := _} = Claims) ->
    Claims;
 iss(Claims) ->
-   Claims#{<<"iss">> => scalar:s(opts:val(issuer, permit))}.
+   Claims#{<<"iss">> => typecast:s(opts:val(issuer, permit))}.
 
 %%
 %%
 aud(#{<<"aud">> := _} = Claims) ->
    Claims;
 aud(Claims) ->
-   Claims#{<<"aud">> => scalar:s(opts:val(audience, permit))}.
+   Claims#{<<"aud">> => typecast:s(opts:val(audience, permit))}.
 
 %%
 %%
-sub(PubKey, Claims) ->
-   Claims#{<<"sub">> => lens:get(permit_pubkey:access(), PubKey)}.
+sub(#pubkey{id = {iri, _, Sub}}, Claims) ->
+   Claims#{<<"sub">> => Sub}.
 
 %%
 %%
-idp(PubKey, Claims) ->
-   case lens:get(permit_pubkey:master(), PubKey) of
-      undefined ->
-         Claims;
-      Idp ->
-         Claims#{<<"idp">> => Idp}
-   end.
-
-
+idp(#pubkey{id = {iri, Idp, _}}, Claims) ->
+   Claims#{<<"idp">> => Idp}.

@@ -29,7 +29,7 @@ init([]) ->
    {ok,
       {
          {one_for_one, 6, 900},
-         db_pubkey() ++ cache_pubkey()
+         config() ++ cache_pubkey() ++ db_pubkey()
       }
    }.
 
@@ -66,7 +66,7 @@ storage() ->
 %%
 %%
 config() ->
-   supervisor:start_child(?MODULE, ?CHILD(worker, permit_config)).
+   [?CHILD(worker, permit_config)].
 
 %%
 %%
