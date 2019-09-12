@@ -40,7 +40,7 @@
 
 %%
 %% data types
--type access()   :: binary().
+-type access()   :: {iri, binary(), binary()}.
 -type secret()   :: binary().
 -type token()    :: binary().
 -type claims()   :: #{binary() => _}.
@@ -79,11 +79,11 @@ public() ->
 create(Access, Secret) ->
    create(Access, Secret, default_claims()).
 
-create(Access, Secret, Claims)
- when is_binary(Access), is_binary(Secret) ->
+create({iri, _, _} = Access, Secret, Claims)
+ when is_binary(Secret) ->
    [either ||
       permit_pubkey:new(Access, Secret, Claims),
-      permit_pubkey_io:create(_),
+      permit_pubkey_db:create(_),
       permit_pubkey:authenticate(_, Secret),
       permit_token:revocable(_, ?CONFIG_TTL_ACCESS, Claims)
    ];
@@ -286,7 +286,7 @@ equals_match(Claims, Required) ->
 %%
 %%
 default_claims() ->
-   [$. ||
+   [identity ||
       opts:val(claims, permit),
       scalar:s(_),
       binary:split(_, <<$&>>, [trim, global]),

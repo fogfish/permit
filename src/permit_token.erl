@@ -1,8 +1,9 @@
 %% @doc
 %%   security token
 -module(permit_token).
--include("permit.hrl").
+
 -compile({parse_transform, category}).
+-include("permit.hrl").
 
 -export([
    stateless/3,
@@ -30,9 +31,9 @@ stateless(TTL, Claims) ->
 
 %%
 %% create new revocable token with given ttl and claims
-revocable(PubKey, TTL, Claims) ->
+revocable(#pubkey{secret = Secret} = PubKey, TTL, Claims) ->
    [either ||
-      jwt:encode(?HS256, #{}, TTL, lens:get(permit_pubkey:secret(), PubKey)),
+      jwt:encode(?HS256, #{}, TTL, Secret),
       cats:unit(Claims#{<<"rev">> => _}),
       stateless(PubKey, TTL, _)
    ].
