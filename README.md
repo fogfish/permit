@@ -36,6 +36,8 @@ The latest version of the library is available at its `master` branch. All devel
 
 The library supports config either using [standard release config files](http://erlang.org/doc/man/config.html) or environment variables. Please see [example configuration](priv/app.config).
 
+Please note that your application requires [AWS DynamoDB driver](https://github.com/fogfish/ddb) as dependency if you need to activate keys persistency feature.
+
 ### Usage
 
 ```erlang
