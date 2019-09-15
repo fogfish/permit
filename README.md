@@ -38,7 +38,7 @@ The library supports config either using [standard release config files](http://
 
 Please note that your application requires [AWS DynamoDB driver](https://github.com/fogfish/ddb) as dependency if you need to activate keys persistency feature. It is recommended to use following table schema
 
-```
+```yaml
 MyTable:
     Type: AWS::DynamoDB::Table
     Properties:
