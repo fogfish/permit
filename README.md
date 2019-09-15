@@ -36,7 +36,29 @@ The latest version of the library is available at its `master` branch. All devel
 
 The library supports config either using [standard release config files](http://erlang.org/doc/man/config.html) or environment variables. Please see [example configuration](priv/app.config).
 
-Please note that your application requires [AWS DynamoDB driver](https://github.com/fogfish/ddb) as dependency if you need to activate keys persistency feature.
+Please note that your application requires [AWS DynamoDB driver](https://github.com/fogfish/ddb) as dependency if you need to activate keys persistency feature. It is recommended to use following table schema
+
+```
+MyTable:
+    Type: AWS::DynamoDB::Table
+    Properties:
+      TableName: !Sub ${AWS::StackName}-pubkey
+      AttributeDefinitions:
+        - AttributeName: prefix
+          AttributeType: S
+        - AttributeName: suffix
+          AttributeType: S
+
+      KeySchema:
+        - AttributeName: prefix
+          KeyType: HASH
+        - AttributeName: suffix
+          KeyType: RANGE
+
+      ProvisionedThroughput:
+        ReadCapacityUnits: 1
+        WriteCapacityUnits: 1
+```
 
 ### Usage
 
