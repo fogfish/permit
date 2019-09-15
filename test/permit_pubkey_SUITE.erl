@@ -4,58 +4,16 @@
 -include_lib("common_test/include/ct.hrl").
 -include_lib("permit/src/permit.hrl").
 
-%% common test
--export([
-   all/0,
-   groups/0,
-   init_per_suite/1,
-   end_per_suite/1,
-   init_per_group/2,
-   end_per_group/2
-]).
+-compile(export_all).
 
-%% unit tests
--export([new/1, auth/1, invalid_secret/1, invalid_claims/1]).
-
-%%%----------------------------------------------------------------------------   
-%%%
-%%% factory
-%%%
-%%%----------------------------------------------------------------------------   
-
-all() ->
-   [
-      {group, pubkey}
-   ].
-
-groups() ->
-   [
-      %%
-      %% 
-      {pubkey, [parallel], 
-         [new, auth, invalid_secret, invalid_claims]}
-   ].
-
-%%%----------------------------------------------------------------------------   
-%%%
-%%% init
-%%%
-%%%----------------------------------------------------------------------------   
-init_per_suite(Config) ->
-   Config.
-
-
-end_per_suite(_Config) ->
-   ok.
-
-%% 
 %%
-init_per_group(_, Config) ->
-   Config.
-
-end_per_group(_, _Config) ->
-   ok.
-
+all() ->
+   [Test || {Test, NAry} <- ?MODULE:module_info(exports), 
+      Test =/= module_info,
+      Test =/= init_per_suite,
+      Test =/= end_per_suite,
+      NAry =:= 1
+   ].
 
 %%%----------------------------------------------------------------------------   
 %%%
@@ -64,46 +22,60 @@ end_per_group(_, _Config) ->
 %%%----------------------------------------------------------------------------   
 
 %%
-new(_Config) ->
-   meck:new(permit_hash, [passthrough]),
-   meck:expect(permit_hash, random, fun(N) -> erlang:iolist_to_binary(lists:duplicate(N, $x)) end),
-
-   {ok, PubKey} = permit_pubkey:new(<<"access">>, <<"secret">>, 
-      #{<<"a">> => 1, <<"b">> => true, <<"c">> => <<"x">>}),
-
-   meck:unload(permit_hash),
+new(_) ->
+   Nonce  = <<"abcdef">>,
+   Claims = #{<<"a">> => 1, <<"b">> => true, <<"c">> => <<"x">>},
+   Access = {iri, <<"example.com">>, <<"joe">>},
+   Secret = <<"secret">>,
    
-   <<"access">> = lens:get(permit_pubkey:access(), PubKey),
-   undefined = lens:get(permit_pubkey:master(), PubKey),
-   Nonce  = erlang:iolist_to_binary(lists:duplicate(?CONFIG_SALT, $x)),
-   Nonce  = base64url:decode(lens:get(permit_pubkey:nonce(), PubKey)),
-   Secret = permit_hash:sign(<<"secret">>, Nonce),
-   Secret = base64url:decode(lens:get(permit_pubkey:secret(), PubKey)),
-   1      = lens:get(lens:at(<<"a">>), PubKey),
-   true   = lens:get(lens:at(<<"b">>), PubKey),
-   <<"x">>= lens:get(lens:at(<<"c">>), PubKey).
+   HSecret = base64url:encode(permit_hash:sign(Secret, Nonce)),
+   HNonce  = base64url:encode(Nonce),
+
+   meck:new(permit_hash, [passthrough]),
+   meck:expect(permit_hash, random, fun(_) -> Nonce end),
+
+   {ok,
+      #pubkey{
+         id     = Access
+      ,  secret = HSecret
+      ,  nonce  = HNonce
+      ,  claims = Claims
+      }
+   } = permit_pubkey:new(Access, Secret, Claims),
+
+   meck:unload(permit_hash).
 
 
 %%
 auth(_Config) ->
-   {ok, PubKey} = permit_pubkey:new(<<"access">>, <<"secret">>,
-      #{<<"a">> => 1, <<"b">> => true, <<"c">> => <<"x">>}),
-   {ok, _} = permit_pubkey:authenticate(PubKey, <<"secret">>),
-   {ok, _} = permit_pubkey:authenticate(PubKey, <<"secret">>, #{<<"a">> => 1}),
-   {ok, _} = permit_pubkey:authenticate(PubKey, <<"secret">>, #{<<"a">> => 1, <<"b">> => true}).
+   Claims = #{<<"a">> => 1, <<"b">> => true, <<"c">> => <<"x">>},
+   Access = {iri, <<"example.com">>, <<"joe">>},
+   Secret = <<"secret">>,
+
+   {ok, PubKey} = permit_pubkey:new(Access, Secret, Claims),
+   {ok, _} = permit_pubkey:authenticate(PubKey, Secret).
+
+   % {ok, _} = permit_pubkey:authenticate(PubKey, Secret, Claims),
+   % {ok, _} = permit_pubkey:authenticate(PubKey, Secret, maps:without([<<"c">>], Claims)),
+   % {ok, _} = permit_pubkey:authenticate(PubKey, Secret, maps:without([<<"b">>, <<"c">>], Claims)).
 
 
 %%
 invalid_secret(_Config) ->
-   {ok, PubKey} = permit_pubkey:new(<<"access">>, <<"secret">>, 
-      #{<<"a">> => 1, <<"b">> => true, <<"c">> => <<"x">>}),
+   Claims = #{<<"a">> => 1, <<"b">> => true, <<"c">> => <<"x">>},
+   Access = {iri, <<"example.com">>, <<"joe">>},
+   Secret = <<"secret">>,
+
+   {ok, PubKey} = permit_pubkey:new(Access, Secret, Claims),
    {error, unauthorized}  = permit_pubkey:authenticate(PubKey, <<"unsecret">>).
 
 
 %%
-invalid_claims(_Config) ->
-   {ok, PubKey} = permit_pubkey:new(<<"access">>, <<"secret">>,
-      #{<<"a">> => 1, <<"b">> => true, <<"c">> => <<"x">>}),
-   {error, unauthorized} = permit_pubkey:authenticate(PubKey, <<"secret">>, #{<<"d">> => 1}),
-   {error, unauthorized} = permit_pubkey:authenticate(PubKey, <<"secret">>, #{}).
+% invalid_claims(_Config) ->
+%    Claims = #{<<"a">> => 1, <<"b">> => true, <<"c">> => <<"x">>},
+%    Access = {iri, <<"example.com">>, <<"joe">>},
+%    Secret = <<"secret">>,
 
+%    {ok, PubKey} = permit_pubkey:new(Access, Secret, Claims),
+%    {error, unauthorized} = permit_pubkey:authenticate(PubKey, Secret, #{<<"d">> => 1}),
+%    {error, unauthorized} = permit_pubkey:authenticate(PubKey, Secret, #{}).

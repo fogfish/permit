@@ -48,16 +48,19 @@ validate(Token) ->
       validate_jwt(_)
    ].
 
-validate_jwt(#{<<"rev">> := Rev, <<"sub">> := Sub} = Claims) ->
+validate_jwt(#{<<"rev">> := Rev} = Claims) ->
    [either ||
-      permit_pubkey_io:lookup(Sub),
-      cats:unit(lens:get(permit_pubkey:secret(), _)),
-      jwt:decode(Rev, _),
-      cats:unit(Claims#{<<"rev">> => true})
+      #pubkey{secret = Secret} <- permit_pubkey_db:lookup(subject(Claims)),
+      jwt:decode(Rev, Secret),
+      cats:unit(Claims#{<<"sub">> => subject(Claims), <<"rev">> => true})
    ];
 
 validate_jwt(Claims) ->
-   {ok, Claims}.
+   {ok, Claims#{<<"sub">> => subject(Claims)}}.
+
+subject(#{<<"sub">> := Sub}) ->
+   [Suffix, Prefix] = binary:split(Sub, <<$@>>),
+   {iri, Prefix, Suffix}.
 
 %%
 %%
@@ -106,8 +109,8 @@ aud(Claims) ->
 
 %%
 %%
-sub(#pubkey{id = {iri, _, Sub}}, Claims) ->
-   Claims#{<<"sub">> => Sub}.
+sub(#pubkey{id = {iri, Prefix, Suffix}}, Claims) ->
+   Claims#{<<"sub">> => <<Suffix/binary, $@, Prefix/binary>>}.
 
 %%
 %%

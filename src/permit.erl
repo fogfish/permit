@@ -9,8 +9,9 @@
 %%   * associate token scope with cert
 %%   * management interface to revoke key
 -module(permit).
--include("permit.hrl").
+
 -compile({parse_transform, category}).
+-include("permit.hrl").
 
 -export([start/0]).
 -export([
@@ -34,7 +35,7 @@
    equals/2,
    default_claims/0
 ]).
--export_type([access/0, secret/0, token/0, claims/0, pubkey/0]).
+-export_type([access/0, secret/0, token/0, claims/0]).
 
 %%
 %% data types
@@ -42,8 +43,7 @@
 -type secret()   :: binary().
 -type token()    :: binary().
 -type claims()   :: #{binary() => _}.
--type pubkey()   :: #{binary() => _}.
--type identity() :: #{binary() => _}.
+-type identity() :: {access(), secret()}.
 
 %%
 %%
@@ -59,10 +59,10 @@ public() ->
 %% Create a new pubkey pair, declare unique access and secret identity.
 %% The process derives a new pair, stores it and return an identity token.
 %%
-%% {ok, Token} = permit:create("joe@example.com", "secret").
+%% {ok, Token} = permit:create({iri, "com.example", "joe"}, "secret").
 %%
--spec create(access(), secret()) -> {ok, token()} | {error, _}.
--spec create(access(), secret(), claims()) -> {ok, token()} | {error, _}.
+-spec create(access(), secret()) -> datum:either(token()).
+-spec create(access(), secret(), claims()) -> datum:either(token()).
 
 create(Access, Secret) ->
    create(Access, Secret, default_claims()).
@@ -79,83 +79,76 @@ create({iri, _, _} = Access, Secret, Claims)
 %%  
 %% Update an existed pubkey pair, use unique access to substitute secret key
 %% all allocated tokens becomes invalid
--spec update(access(), secret()) -> {ok, token()} | {error, _}.
--spec update(access(), secret(), claims()) -> {ok, token()} | {error, _}.
+-spec update(access(), secret()) -> datum:either(token()).
+-spec update(access(), secret(), claims()) -> datum:either(token()).
 
+%% @todo: OldSecret, NewSecret
 update(Access, Secret) ->
    update(Access, Secret, default_claims()).
 
-update(Access, Secret, Claims)
- when is_binary(Access), is_binary(Secret) ->
+update({iri, _, _} = Access, Secret, Claims)
+ when is_binary(Secret) ->
    [either ||
       permit_pubkey:new(Access, Secret, Claims),
-      permit_pubkey_io:update(_),
+      permit_pubkey_db:update(_),
       permit_pubkey:authenticate(_, Secret),
       permit_token:revocable(_, ?CONFIG_TTL_ACCESS, Claims)
-   ];
-
-update(Access, Secret, Claims) ->
-   update(scalar:s(Access), scalar:s(Secret), Claims).
+   ].
 
 %%
-%% Lookup an existed pubkey pair, use unique access and secret to prove identity.
-%% The process validates a pair against existed one and returns an identity token.  
-%%
-%% {ok, Token} = permit:signup("joe@example.com", "secret").
-%%
--spec lookup(access()) -> {ok, pubkey()} | {error, any()}.
+%% Lookup an existed pubkey pair
+-spec lookup(access()) -> datum:either(#pubkey{}).
 
-lookup(Access) ->
-   permit_pubkey_io:lookup(scalar:s(Access)).
+lookup({iri, _, _} = Access) ->
+   permit_pubkey_db:lookup(Access).
 
 %%
 %% revoke pubkey pair associated with access key
--spec revoke(access()) -> {ok, pubkey()} | {error, _}.
+-spec revoke(access()) -> datum:either(#pubkey{}).
 
-revoke(Access) ->
+revoke({iri, _, _} = Access) ->
    [either ||
-      permit_pubkey_io:lookup(scalar:s(Access)),
-      permit_pubkey_io:remove(_)
+      permit_pubkey_db:lookup(Access),
+      permit_pubkey_db:remove(_)
    ].
 
 
 %%
 %% derive a new pubkey pair from master access key
--spec pubkey(access()) -> {ok, identity()} | {error, _}.
--spec pubkey(access(), claims()) -> {ok, identity()} | {error, _}.
+-spec pubkey(access()) -> datum:either(identity()).
+-spec pubkey(access(), claims()) -> datum:either(identity()).
 
 pubkey(Master) ->
    pubkey(Master, default_claims()).
 
-pubkey(Master, Claims) ->
-   Access = permit_hash:key(?CONFIG_ACCESS),
+pubkey({iri, Prefix, _} = Master, Claims) ->
+   Access = {iri, Prefix, permit_hash:key(?CONFIG_ACCESS)},
    Secret = permit_hash:key(?CONFIG_SECRET),
    [either ||
-      permit:lookup(Master),
+      #pubkey{
+         claims = Required
+      } <- permit:lookup(Master),
+      include_it(Required, Claims),
       permit_pubkey:new(Access, Secret, Claims),
-      cats:unit(lens:put(permit_pubkey:master(), scalar:s(Master), _)),
-      permit_pubkey_io:create(_),
-      pubkey_access_pair_new(_, Access, Secret)
+      permit_pubkey_db:create(_),
+      cats:unit({Access, Secret})
    ].
 
-pubkey_access_pair_new(_PubKey, Access, Secret) ->
-   {ok, [$. ||
-      cats:unit(#{}),
-      lens:put(permit_pubkey:access(), Access, _),
-      lens:put(permit_pubkey:secret(), Secret, _)
-   ]}.
 
 %%
 %% authenticate the identity (access/secret) and 
 %% return a stateless token with given ttl and claims
--spec stateless(access(), secret(), timeout(), claims()) -> {ok, token()} | {error, _}.
--spec stateless(token(), timeout(), claims()) -> {ok, token()} | {error, _}.
+-spec stateless(access(), secret(), timeout(), claims()) -> datum:either(token()).
+-spec stateless(token(), timeout(), claims()) -> datum:either(token()).
 
-stateless(Access, Secret, TTL, Claims) ->
+stateless({iri, _, _} = Access, Secret, TTL, Claims) ->
    [either ||
-      permit_pubkey_io:lookup(scalar:s(Access)),
-      permit_pubkey:authenticate(_, Secret),
-      permit_token:stateless(_, TTL, Claims)
+      permit_pubkey_db:lookup(Access),
+      #pubkey{
+         claims = Required
+      } = PubKey <- permit_pubkey:authenticate(_, Secret),
+      include_it(Required, Claims),
+      permit_token:stateless(PubKey, TTL, Claims)
    ].
 
 stateless(Token, TTL, Claims) ->
@@ -164,21 +157,27 @@ stateless(Token, TTL, Claims) ->
       cats:optionT(unauthorized,
          lens:get(lens:at(<<"sub">>), _)
       ),
-      permit_pubkey_io:lookup(_),
-      permit_token:stateless(_, TTL, Claims)
+      #pubkey{
+         claims = Required
+      } = PubKey <- permit_pubkey_db:lookup(_),
+      include_it(Required, Claims),
+      permit_token:stateless(PubKey, TTL, Claims)
    ].
 
 %%
 %% authenticate the identity (access/secret) and 
 %% return a revocable token with given ttl and claims
--spec revocable(access(), secret(), timeout(), claims()) -> {ok, token()} | {error, _}.
--spec revocable(token(), timeout(), claims()) -> {ok, token()} | {error, _}.
+-spec revocable(access(), secret(), timeout(), claims()) -> datum:either(token()).
+-spec revocable(token(), timeout(), claims()) -> datum:either(token()).
 
-revocable(Access, Secret, TTL, Claims) ->
+revocable({iri, _, _} = Access, Secret, TTL, Claims) ->
    [either ||
-      permit_pubkey_io:lookup(scalar:s(Access)),
-      permit_pubkey:authenticate(_, Secret),
-      permit_token:revocable(_, TTL, Claims)
+      permit_pubkey_db:lookup(Access),
+      #pubkey{
+         claims = Required
+      } = PubKey <- permit_pubkey:authenticate(_, Secret),
+      include_it(Required, Claims),
+      permit_token:revocable(PubKey, TTL, Claims)
    ].
 
 revocable(Token, TTL, Claims) ->
@@ -187,8 +186,11 @@ revocable(Token, TTL, Claims) ->
       cats:optionT(unauthorized,
          lens:get(lens:at(<<"sub">>), _)
       ),
-      permit_pubkey_io:lookup(_),
-      permit_token:revocable(_, TTL, Claims)
+      #pubkey{
+         claims = Required
+      } = PubKey <- permit_pubkey_db:lookup(_),
+      include_it(Required, Claims),
+      permit_token:revocable(PubKey, TTL, Claims)
    ].
 
    
@@ -266,7 +268,6 @@ equals_match(Claims, Required) ->
       _ ->
          {error, forbidden}
    end.
-
 
 %%
 %%
