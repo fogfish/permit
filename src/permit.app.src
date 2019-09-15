@@ -15,8 +15,6 @@
         ,uid
         ,pts
         ,jwt
-
-        ,ddb
       ]},
       {mod, {permit_app, []}},
       {env, []}

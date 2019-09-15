@@ -70,6 +70,6 @@ refresh() ->
       undefined ->
          ok;
       T ->
-         erlang:send_after(scalar:i(T), self(), seed)
+         erlang:send_after(typecast:i(T), self(), seed)
    end.
 

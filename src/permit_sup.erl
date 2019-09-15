@@ -28,7 +28,7 @@ init([]) ->
    {ok,
       {
          {one_for_one, 6, 900},
-         config() ++ cache_pubkey() ++ db_pubkey()
+         cache_pubkey() ++ db_pubkey() ++ config()
       }
    }.
 
