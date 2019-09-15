@@ -98,14 +98,14 @@ tji(Claims) ->
 iss(#{<<"iss">> := _} = Claims) ->
    Claims;
 iss(Claims) ->
-   Claims#{<<"iss">> => typecast:s(opts:val(issuer, permit))}.
+   Claims#{<<"iss">> => permit_config:iss()}.
 
 %%
 %%
 aud(#{<<"aud">> := _} = Claims) ->
    Claims;
 aud(Claims) ->
-   Claims#{<<"aud">> => typecast:s(opts:val(audience, permit))}.
+   Claims#{<<"aud">> => permit_config:aud()}.
 
 %%
 %%

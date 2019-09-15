@@ -273,8 +273,7 @@ equals_match(Claims, Required) ->
 %%
 default_claims() ->
    [identity ||
-      opts:val(claims, permit),
-      scalar:s(_),
+      permit_config:claims(),
       binary:split(_, <<$&>>, [trim, global]),
       lists:map(fun(X) -> [Key, Val] = binary:split(X, <<$=>>), {Key, scalar:decode(Val)} end, _),
       maps:from_list(_)

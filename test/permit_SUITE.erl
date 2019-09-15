@@ -45,6 +45,8 @@ create(_Config) ->
    Access = access(create),
    {ok, Token} = permit:create(Access, secret()),
    {ok, #{
+      <<"iss">> := <<"permit">>,
+      <<"aud">> := <<"permit">>,
       <<"sub">> := Access,
       <<"exp">> := _,
       <<"uid">> := true
@@ -61,6 +63,8 @@ update(_Config) ->
    Access = access(update),
    {ok, TokenA} = permit:create(Access, secret()),
    {ok, #{
+      <<"iss">> := <<"permit">>,
+      <<"aud">> := <<"permit">>,
       <<"sub">> := Access,
       <<"exp">> := _,
       <<"uid">> := true
@@ -68,6 +72,8 @@ update(_Config) ->
 
    {ok, TokenB} = permit:update(Access, <<"newsecret">>),
    {ok, #{
+      <<"iss">> := <<"permit">>,
+      <<"aud">> := <<"permit">>,
       <<"sub">> := Access, 
       <<"exp">> := _,
       <<"uid">> := true
@@ -106,6 +112,8 @@ stateless(_Config) ->
    {ok, TknA} = permit:stateless(Access, secret(), 3600, Claims),
 
    {ok, #{
+      <<"iss">> := <<"permit">>,
+      <<"aud">> := <<"permit">>,
       <<"sub">> := Access,
       <<"exp">> := _,
       <<"a">>   := 1,
@@ -138,6 +146,8 @@ revocable(_Config) ->
    {ok, TknA} = permit:revocable(Access, secret(), 3600, Claims),
 
    {ok, #{
+      <<"iss">> := <<"permit">>,
+      <<"aud">> := <<"permit">>,
       <<"sub">> := Access,
       <<"exp">> := _,
       <<"rev">> := true,
@@ -166,6 +176,8 @@ pubkey(_Config) ->
 
    {ok, Token} = permit:stateless(Access, Secret, 3600, #{<<"d">> => false}),
    {ok, #{
+      <<"iss">> := <<"permit">>,
+      <<"aud">> := <<"permit">>,
       <<"sub">> := Access,
       <<"exp">> := _,
       <<"d">> := false,
@@ -187,6 +199,8 @@ exchange(_Config) ->
    {ok, TknB} = permit:stateless(TknA, 600, 
       #{<<"a">> => 1, <<"b">> => true, <<"c">> => <<"x">>, <<"d">> => false}),
    {ok, #{
+      <<"iss">> := <<"permit">>,
+      <<"aud">> := <<"permit">>,
       <<"sub">> := Access,
       <<"exp">> := _,
       <<"a">>   := 1,

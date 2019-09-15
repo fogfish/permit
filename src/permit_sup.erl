@@ -38,7 +38,7 @@ db_pubkey() ->
    db(#pubkey{}, labelled:encode(#pubkey{}), labelled:decode(#pubkey{})).
 
 db(Type, Encode, Decode) ->
-   db(storage(), Type, Encode, Decode).
+   db(permit_config:storage(), Type, Encode, Decode).
 
 db({uri, ephemeral, _}, _, _, _) ->
    [];
@@ -55,12 +55,9 @@ cache_pubkey() ->
       [
          'read-through'
       ,  {factory, temporary}
-      ,  {entity, {permit_pubkey_db, start_link, [storage()]}}
+      ,  {entity, {permit_pubkey_db, start_link, [permit_config:storage()]}}
       ]
    ])].
-
-storage() ->
-   uri:new( opts:val(storage, "ephemeral://", permit) ).
 
 %%
 %%
