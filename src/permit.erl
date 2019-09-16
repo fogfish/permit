@@ -3,11 +3,6 @@
 %%   1. hash and salt password using sha256 and 256-bit salt
 %%   2. use PBKDF2 to stretch key
 %%   3. encrypt hash using AES
-%%
-%% @todo
-%%   * associate user data with cert (root + pubkey e.g. first/last names, device id, etc)
-%%   * associate token scope with cert
-%%   * management interface to revoke key
 -module(permit).
 
 -compile({parse_transform, category}).
@@ -82,7 +77,6 @@ create({iri, _, _} = Access, Secret, Claims)
 -spec update(access(), secret()) -> datum:either(token()).
 -spec update(access(), secret(), claims()) -> datum:either(token()).
 
-%% @todo: OldSecret, NewSecret
 update(Access, Secret) ->
    update(Access, Secret, default_claims()).
 

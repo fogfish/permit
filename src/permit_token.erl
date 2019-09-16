@@ -59,8 +59,12 @@ validate_jwt(Claims) ->
    {ok, Claims#{<<"sub">> => subject(Claims)}}.
 
 subject(#{<<"sub">> := Sub}) ->
-   [Suffix, Prefix] = binary:split(Sub, <<$@>>),
-   {iri, Prefix, Suffix}.
+   case binary:split(Sub, <<$@>>) of
+      [Suffix, Prefix] ->
+         {iri, Prefix, Suffix};
+      [Prefix] ->
+         {iri, Prefix, undefined}
+   end.
 
 %%
 %%

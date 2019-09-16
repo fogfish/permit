@@ -8,7 +8,6 @@
 -export([
    new/3
 ,  authenticate/2
-%   ,acl/2
 ]).
 
 %%
@@ -44,13 +43,3 @@ auth_signature(#pubkey{nonce = Nonce, secret = SignA} = PubKey, Secret) ->
       false ->
          {error, unauthorized}
    end.
-
-%%
-%% return valid list of roles
-% -spec acl(permit:pubkey(), permit:claims()) -> {ok, permit:claims()} | {error, _}.
-
-% acl(PubKey, Claims) ->
-%    [either ||
-%       claims(PubKey),
-%       cats:unit(maps:with(maps:keys(_), Claims))
-%    ].
