@@ -1,8 +1,9 @@
 %% @doc
 %%   security token
 -module(permit_token).
--include("permit.hrl").
+
 -compile({parse_transform, category}).
+-include("permit.hrl").
 
 -export([
    stateless/3,
@@ -30,9 +31,9 @@ stateless(TTL, Claims) ->
 
 %%
 %% create new revocable token with given ttl and claims
-revocable(PubKey, TTL, Claims) ->
+revocable(#pubkey{secret = Secret} = PubKey, TTL, Claims) ->
    [either ||
-      jwt:encode(?HS256, #{}, TTL, lens:get(permit_pubkey:secret(), PubKey)),
+      jwt:encode(?HS256, #{}, TTL, Secret),
       cats:unit(Claims#{<<"rev">> => _}),
       stateless(PubKey, TTL, _)
    ].
@@ -47,16 +48,23 @@ validate(Token) ->
       validate_jwt(_)
    ].
 
-validate_jwt(#{<<"rev">> := Rev, <<"sub">> := Sub} = Claims) ->
+validate_jwt(#{<<"rev">> := Rev} = Claims) ->
    [either ||
-      permit_pubkey_io:lookup(Sub),
-      cats:unit(lens:get(permit_pubkey:secret(), _)),
-      jwt:decode(Rev, _),
-      cats:unit(Claims#{<<"rev">> => true})
+      #pubkey{secret = Secret} <- permit_pubkey_db:lookup(subject(Claims)),
+      jwt:decode(Rev, Secret),
+      cats:unit(Claims#{<<"sub">> => subject(Claims), <<"rev">> => true})
    ];
 
 validate_jwt(Claims) ->
-   {ok, Claims}.
+   {ok, Claims#{<<"sub">> => subject(Claims)}}.
+
+subject(#{<<"sub">> := Sub}) ->
+   case binary:split(Sub, <<$@>>) of
+      [Suffix, Prefix] ->
+         {iri, Prefix, Suffix};
+      [Prefix] ->
+         {iri, Prefix, undefined}
+   end.
 
 %%
 %%
@@ -94,28 +102,21 @@ tji(Claims) ->
 iss(#{<<"iss">> := _} = Claims) ->
    Claims;
 iss(Claims) ->
-   Claims#{<<"iss">> => scalar:s(opts:val(issuer, permit))}.
+   Claims#{<<"iss">> => permit_config:iss()}.
 
 %%
 %%
 aud(#{<<"aud">> := _} = Claims) ->
    Claims;
 aud(Claims) ->
-   Claims#{<<"aud">> => scalar:s(opts:val(audience, permit))}.
+   Claims#{<<"aud">> => permit_config:aud()}.
 
 %%
 %%
-sub(PubKey, Claims) ->
-   Claims#{<<"sub">> => lens:get(permit_pubkey:access(), PubKey)}.
+sub(#pubkey{id = {iri, Prefix, Suffix}}, Claims) ->
+   Claims#{<<"sub">> => <<Suffix/binary, $@, Prefix/binary>>}.
 
 %%
 %%
-idp(PubKey, Claims) ->
-   case lens:get(permit_pubkey:master(), PubKey) of
-      undefined ->
-         Claims;
-      Idp ->
-         Claims#{<<"idp">> => Idp}
-   end.
-
-
+idp(#pubkey{id = {iri, Idp, _}}, Claims) ->
+   Claims#{<<"idp">> => Idp}.

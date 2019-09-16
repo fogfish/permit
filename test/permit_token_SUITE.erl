@@ -4,37 +4,17 @@
 -include_lib("common_test/include/ct.hrl").
 -include_lib("permit/src/permit.hrl").
 
-%% common test
--export([
-   all/0,
-   groups/0,
-   init_per_suite/1,
-   end_per_suite/1,
-   init_per_group/2,
-   end_per_group/2
-]).
+-compile(export_all).
 
-%% unit tests
--export([
-   validate/1, expired_token/1
-]).
-
-%%%----------------------------------------------------------------------------   
-%%%
-%%% factory
-%%%
-%%%----------------------------------------------------------------------------   
-
+%%
 all() ->
-   [
-      {group, token}
+   [Test || {Test, NAry} <- ?MODULE:module_info(exports), 
+      Test =/= module_info,
+      Test =/= init_per_suite,
+      Test =/= end_per_suite,
+      NAry =:= 1
    ].
 
-groups() ->
-   [
-      {token, [parallel], 
-         [validate, expired_token]}
-   ].
 
 %%%----------------------------------------------------------------------------   
 %%%
@@ -43,20 +23,11 @@ groups() ->
 %%%----------------------------------------------------------------------------   
 init_per_suite(Config) ->
    permit:start(),
-   {ok, _} = permit:config(),
    Config.
 
 
 end_per_suite(_Config) ->
    application:stop(permit),
-   ok.
-
-%% 
-%%
-init_per_group(_, Config) ->
-   Config.
-
-end_per_group(_, _Config) ->
    ok.
 
 %%%----------------------------------------------------------------------------   
@@ -67,11 +38,13 @@ end_per_group(_, _Config) ->
 
 %%   
 validate(_Config) ->
-   {ok, PubKey} = permit_pubkey:new(<<"access">>, <<"secret">>, 
-      #{<<"a">> => 1, <<"b">> => true, <<"c">> => <<"x">>}),
+   Claims = #{<<"a">> => 1, <<"b">> => true, <<"c">> => <<"x">>},
+   Access = {iri, <<"example.com">>, <<"joe">>},
+   Secret = <<"secret">>,
+
+   {ok, PubKey} = permit_pubkey:new(Access, Secret, Claims),
    {ok, Token}  = permit_token:stateless(PubKey, 3600, #{<<"a">> => true}),
 
-   Access = lens:get(permit_pubkey:access(), PubKey),
    {ok, #{
       <<"sub">> := Access,
       <<"exp">> := _,
@@ -80,7 +53,10 @@ validate(_Config) ->
 
 %%
 expired_token(_Config) ->
-   {ok, PubKey} = permit_pubkey:new(<<"access">>, <<"secret">>, 
-      #{<<"a">> => 1, <<"b">> => true, <<"c">> => <<"x">>}),
+   Claims = #{<<"a">> => 1, <<"b">> => true, <<"c">> => <<"x">>},
+   Access = {iri, <<"example.com">>, <<"joe">>},
+   Secret = <<"secret">>,
+
+   {ok, PubKey} = permit_pubkey:new(Access, Secret, Claims),
    {ok, Token}  = permit_token:stateless(PubKey, -1, #{<<"a">> => 1}),
    {error, expired} = permit_token:validate(Token).

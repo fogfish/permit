@@ -15,7 +15,7 @@ keypair() ->
 
 fetch() ->
    [m_http ||
-      _ > "GET " ++ scalar:c(opts:val(jwks, permit)),
+      _ > "GET " ++ permit_config:jwks(),
       _ > "Accept: application/json",
       _ > "Connection: keep-alive",
 

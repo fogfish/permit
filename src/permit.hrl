@@ -1,5 +1,14 @@
 
 %%
+%% public/private key pair
+-record(pubkey, {
+   id     = undefined :: {iri, binary(), binary()}
+,  secret = undefined :: binary()
+,  nonce  = undefined :: binary()
+,  claims = undefined :: map()
+}).
+
+%%
 %% length of access / secret keys
 -define(CONFIG_ACCESS, 30).
 -define(CONFIG_SECRET, 60).
