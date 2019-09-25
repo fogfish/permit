@@ -155,7 +155,17 @@ revocable(_Config) ->
       <<"b">>   := true,
       <<"c">>   := <<"x">>,
       <<"d">>   := false
-   }} = permit:validate(TknA).
+   }} = permit:validate(TknA),
+
+   {ok, TknB} = permit:revocable(TknA, 3600, #{<<"a">> => 1}),
+   {ok, #{
+      <<"iss">> := <<"permit">>,
+      <<"aud">> := <<"permit">>,
+      <<"sub">> := Access,
+      <<"exp">> := _,
+      <<"rev">> := true,
+      <<"a">>   := 1
+   }} = permit:validate(TknB).
 
 revocable_claims_excalation(_Config) ->
    Access = access(revoke_excalation),
@@ -214,3 +224,68 @@ exchange_invalid_claims(_Config) ->
    {ok, TknA} = permit:create(access(token_roles), secret(),
       #{<<"a">> => 1, <<"b">> => true, <<"c">> => <<"x">>, <<"d">> => false}),   
    {error, forbidden} = permit:stateless(TknA, 3600, #{<<"e">> => true}).
+
+%%
+%%
+include(_) ->
+   Access   = access(pubkey_include),
+   Claims   = #{<<"a">> => 1, <<"b">> => true, <<"c">> => <<"x">>, <<"d">> => false},
+   Required = #{<<"a">> => 1, <<"b">> => true},
+   {ok, Token}  = permit:create(Access, secret(), Claims),
+   {ok, PubKey} = permit:lookup(Access),
+
+   {ok, _} = permit:include(Token, Required),
+   {ok, _} = permit:include(PubKey, Required).
+
+include_forbidden(_) ->
+   Access   = access(pubkey_include_forbidden),
+   Claims   = #{<<"a">> => 1, <<"b">> => true, <<"c">> => <<"x">>, <<"d">> => false},
+   Required = #{<<"a">> => 2, <<"b">> => true},
+   {ok, Token}  = permit:create(Access, secret(), Claims),
+   {ok, PubKey} = permit:lookup(Access),
+
+   {error, forbidden} = permit:include(Token, Required),
+   {error, forbidden} = permit:include(PubKey, Required).
+
+%%
+%%
+exclude(_) ->
+   Access   = access(pubkey_exclude),
+   Claims   = #{<<"a">> => 1, <<"b">> => true, <<"c">> => <<"x">>, <<"d">> => false},
+   Required = #{<<"a">> => 2, <<"e">> => true},
+   {ok, Token}  = permit:create(Access, secret(), Claims),
+   {ok, PubKey} = permit:lookup(Access),
+
+   {ok, _} = permit:exclude(Token, Required),
+   {ok, _} = permit:exclude(PubKey, Required).
+
+exclude_forbidden(_) ->
+   Access   = access(pubkey_exclude_forbidden),
+   Claims   = #{<<"a">> => 1, <<"b">> => true, <<"c">> => <<"x">>, <<"d">> => false},
+   Required = #{<<"a">> => 1, <<"b">> => true},
+   {ok, Token}  = permit:create(Access, secret(), Claims),
+   {ok, PubKey} = permit:lookup(Access),
+
+   {error, forbidden} = permit:exclude(Token, Required),
+   {error, forbidden} = permit:exclude(PubKey, Required).
+
+%%
+%%
+equals(_) ->
+   Access   = access(pubkey_equals),
+   Claims   = #{<<"a">> => 1, <<"b">> => true, <<"c">> => <<"x">>, <<"d">> => false},
+   {ok, Token}  = permit:create(Access, secret(), Claims),
+   {ok, PubKey} = permit:lookup(Access),
+
+   {ok, _} = permit:equals(Token, Claims),
+   {ok, _} = permit:equals(PubKey, Claims).
+
+equals_forbidden(_) ->
+   Access   = access(pubkey_equals_forbidden),
+   Claims   = #{<<"a">> => 1, <<"b">> => true, <<"c">> => <<"x">>, <<"d">> => false},
+   Required = #{<<"a">> => 1, <<"b">> => true, <<"c">> => <<"x">>},
+   {ok, Token}  = permit:create(Access, secret(), Claims),
+   {ok, PubKey} = permit:lookup(Access),
+
+   {error, forbidden} = permit:equals(Token, Required),
+   {error, forbidden} = permit:equals(PubKey, Required).

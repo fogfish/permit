@@ -191,7 +191,7 @@ revocable(Token, TTL, Claims) ->
 %%
 %% Deep validation of access token, checks if revocation flag is valid
 %% requires access to secret key 
--spec validate(token()) -> {ok, map()} | {error, _}.
+-spec validate(token()) -> datum:either(claims()).
 
 validate(Token) ->
    permit_token:validate(Token).
@@ -200,23 +200,28 @@ validate(Token) ->
 %%
 %% validate access token, skips revocation flag
 %% uses stateless methods of validation 
--spec claims(token()) -> {ok, map()} | {error, _}.
+-spec claims(token()) -> datum:either(claims()).
 
 claims(Token) ->
    permit_token:claims(Token).
 
 
 %%
-%% token includes claims
--spec include(token(), claims()) -> {ok, map()} | {error, _}.
+%% token includes claims, required claims are subset of origin
+-spec include(token(), claims()) -> datum:either(claims()).
 
-include(Token, Claims) ->
+include(Token, Required)
+ when is_binary(Token) ->
    [either ||
       permit_token:claims(Token),
-      include_it(_, Claims)
-   ].
+      include_it(_, Required)
+   ];
 
-include_it(Claims, Required) ->
+include(#pubkey{claims = Claims}, Required) ->
+   include_it(Claims, Required).
+
+include_it(Claims, Required)
+ when is_map(Claims) andalso is_map(Required) ->
    case maps:with(maps:keys(Required), Claims) of
       Required ->
          {ok, Claims};
@@ -226,15 +231,20 @@ include_it(Claims, Required) ->
 
 %%
 %% token exclude claims
--spec exclude(token(), claims()) -> {ok, map()} | {error, _}.
+-spec exclude(token(), claims()) -> datum:either(claims()).
 
-exclude(Token, Claims) ->
+exclude(Token, Required)
+ when is_binary(Token) ->
    [either ||
       permit_token:claims(Token),
-      exclude_it(_, Claims)
-   ].
+      exclude_it(_, Required)
+   ];
 
-exclude_it(Claims, Required) ->
+exclude(#pubkey{claims = Claims}, Required) ->
+   exclude_it(Claims, Required).
+
+exclude_it(Claims, Required)
+ when is_map(Claims) andalso is_map(Required) ->
    case maps:with(maps:keys(Required), Claims) of
       Required ->
          {error, forbidden};
@@ -245,19 +255,27 @@ exclude_it(Claims, Required) ->
 %%
 %% claims are exactly equals to token claims
 %% Note: it skips a check of exp, iss, sub, tji
--spec equals(token(), claims()) -> {ok, map()} | {error, _}.
+-spec equals(token(), claims()) -> datum:either(claims()).
 
-equals(Token, Claims) ->
+equals(Token, Required)
+ when is_binary(Token) ->
    [either ||
       permit_token:claims(Token),
-      equals_match(_, Claims)
-   ].
+      equals_match(_, Required)
+   ];
 
-equals_match(Claims, Required) ->
-   HasClaim = maps:without([<<"exp">>, <<"iss">>, <<"sub">>, <<"tji">>], Claims),
-   A = maps:keys(HasClaim),
+equals(#pubkey{claims = Claims}, Required) ->
+   equals_match(Claims, Required).
+
+equals_match(Claims, Required)
+ when is_map(Claims) andalso is_map(Required) ->
+   PureClaims = maps:without(
+      [<<"aud">>, <<"exp">>, <<"iss">>, <<"sub">>, <<"tji">>, <<"idp">>,<<"rev">>],
+      Claims
+   ),
+   Keys = maps:keys(PureClaims),
    case maps:keys(Required) of
-      A ->
+      Keys ->
          include_it(Claims, Required);
       _ ->
          {error, forbidden}
