@@ -11,7 +11,7 @@
 %%
 %%
 -define(PERMIT_CLAIMS,
-   [<<"aud">>, <<"exp">>, <<"iss">>, <<"sub">>, <<"tji">>, <<"idp">>,<<"rev">>]
+   [<<"app">>, <<"aud">>, <<"exp">>, <<"iss">>, <<"sub">>, <<"tji">>, <<"idp">>,<<"rev">>]
 ).
 
 %%

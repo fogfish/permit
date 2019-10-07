@@ -83,11 +83,11 @@ permit:validate(Token).
 
 ## JWT token structure
 
-Please see a comprehensive specification of token attributes [here](https://docs.microsoft.com/en-us/azure/active-directory/develop/id-tokens). 
+Please see a comprehensive specification of token claims [here](https://docs.microsoft.com/en-us/azure/active-directory/develop/id-tokens). This library defines a few system-level claims, which are included to each token.
 
-**`iss`** identifies the security token service (STS) that constructs and returns the token.
+**`iss`** identifies the security token service (STS) that constructs and returns the token, its value defined by `PERMIT_ISSUER` environment variable.
 
-**`aud`** identifies intended recipient of the token. The application that receives the token must verify that the audience value is correct and reject any tokens intended for a different audience. 
+**`aud`** identifies intended recipient of the token. The application that receives the token must verify that the audience value is correct and reject any tokens intended for a different audience. The value is defined by `PERMIT_AUDIENCE` environment variable
 
 **`sub`** identifies the principal about which the token asserts information, such as the user of an application.
 
