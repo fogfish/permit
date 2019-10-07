@@ -141,7 +141,7 @@ stateless({iri, _, _} = Access, Secret, TTL, Claims) ->
       #pubkey{
          claims = Required
       } = PubKey <- permit_pubkey:authenticate(_, Secret),
-      include_it(Required, Claims),
+      include_it(Required, maps:without(?PERMIT_CLAIMS, Claims)),
       permit_token:stateless(PubKey, TTL, Claims)
    ].
 
@@ -154,7 +154,7 @@ stateless(Token, TTL, Claims) ->
       #pubkey{
          claims = Required
       } = PubKey <- permit_pubkey_db:lookup(_),
-      include_it(Required, Claims),
+      include_it(Required, maps:without(?PERMIT_CLAIMS, Claims)),
       permit_token:stateless(PubKey, TTL, Claims)
    ].
 
@@ -170,7 +170,7 @@ revocable({iri, _, _} = Access, Secret, TTL, Claims) ->
       #pubkey{
          claims = Required
       } = PubKey <- permit_pubkey:authenticate(_, Secret),
-      include_it(Required, Claims),
+      include_it(Required, maps:without(?PERMIT_CLAIMS, Claims)),
       permit_token:revocable(PubKey, TTL, Claims)
    ].
 
@@ -183,7 +183,7 @@ revocable(Token, TTL, Claims) ->
       #pubkey{
          claims = Required
       } = PubKey <- permit_pubkey_db:lookup(_),
-      include_it(Required, Claims),
+      include_it(Required, maps:without(?PERMIT_CLAIMS, Claims)),
       permit_token:revocable(PubKey, TTL, Claims)
    ].
 
@@ -269,10 +269,7 @@ equals(#pubkey{claims = Claims}, Required) ->
 
 equals_match(Claims, Required)
  when is_map(Claims) andalso is_map(Required) ->
-   PureClaims = maps:without(
-      [<<"aud">>, <<"exp">>, <<"iss">>, <<"sub">>, <<"tji">>, <<"idp">>,<<"rev">>],
-      Claims
-   ),
+   PureClaims = maps:without(?PERMIT_CLAIMS, Claims),
    Keys = maps:keys(PureClaims),
    case maps:keys(Required) of
       Keys ->

@@ -9,6 +9,12 @@
 }).
 
 %%
+%%
+-define(PERMIT_CLAIMS,
+   [<<"aud">>, <<"exp">>, <<"iss">>, <<"sub">>, <<"tji">>, <<"idp">>,<<"rev">>]
+).
+
+%%
 %% length of access / secret keys
 -define(CONFIG_ACCESS, 30).
 -define(CONFIG_SECRET, 60).
