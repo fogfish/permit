@@ -59,12 +59,8 @@ validate_jwt(Claims) ->
    {ok, Claims#{<<"sub">> => subject(Claims)}}.
 
 subject(#{<<"sub">> := Sub}) ->
-   case binary:split(Sub, <<$@>>) of
-      [Suffix, Prefix] ->
-         {iri, Prefix, Suffix};
-      [Prefix] ->
-         {iri, Prefix, undefined}
-   end.
+   {ok, IRI} = permit:to_access(Sub),
+   IRI.
 
 %%
 %%
@@ -113,8 +109,9 @@ aud(Claims) ->
 
 %%
 %%
-sub(#pubkey{id = {iri, Prefix, Suffix}}, Claims) ->
-   Claims#{<<"sub">> => <<Suffix/binary, $@, Prefix/binary>>}.
+sub(#pubkey{id = {iri, _, _} = Access}, Claims) ->
+   {ok, Sub} = permit:as_access(Access),
+   Claims#{<<"sub">> => Sub}.
 
 %%
 %%

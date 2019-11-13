@@ -39,7 +39,7 @@ end_per_suite(_Config) ->
 %%   
 validate(_Config) ->
    Claims = #{<<"a">> => 1, <<"b">> => true, <<"c">> => <<"x">>},
-   Access = {iri, <<"example.com">>, <<"joe">>},
+   Access = {iri, <<"9bj7YMYRYzHaB8Zblqih0Q">>, <<"joe@example.com">>},
    Secret = <<"secret">>,
 
    {ok, PubKey} = permit_pubkey:new(Access, Secret, Claims),
@@ -54,7 +54,7 @@ validate(_Config) ->
 %%
 expired_token(_Config) ->
    Claims = #{<<"a">> => 1, <<"b">> => true, <<"c">> => <<"x">>},
-   Access = {iri, <<"example.com">>, <<"joe">>},
+   Access = {iri, <<"9bj7YMYRYzHaB8Zblqih0Q">>, <<"joe@example.com">>},
    Secret = <<"secret">>,
 
    {ok, PubKey} = permit_pubkey:new(Access, Secret, Claims),

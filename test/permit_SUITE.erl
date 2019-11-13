@@ -37,8 +37,13 @@ end_per_suite(_Config) ->
 %%%
 %%%----------------------------------------------------------------------------   
 
-access(Id) -> {iri, <<"example.com">>, typecast:s(Id)}.
-secret() -> <<"secret">>.
+access(Id) ->
+   Suffix = <<(typecast:s(Id))/binary, "@example.com">>,
+   Prefix = base64url:encode(crypto:hash(md5, Suffix)),
+   {iri, Prefix, Suffix}.
+
+secret() ->
+   <<"secret">>.
 
 %%
 create(_Config) ->
@@ -181,6 +186,7 @@ revocable_claims_excalation(_Config) ->
 %%
 pubkey(_Config) ->
    Claims  = #{<<"a">> => 1, <<"b">> => true, <<"c">> => <<"x">>, <<"d">> => false},
+   {iri, IDP, _} = access(pubkey),
    {ok, _} = permit:create(access(pubkey), secret(), Claims),
    {ok, {Access, Secret}} = permit:pubkey(access(pubkey), #{<<"d">> => false}),
 
@@ -191,7 +197,7 @@ pubkey(_Config) ->
       <<"sub">> := Access,
       <<"exp">> := _,
       <<"d">> := false,
-      <<"idp">> := <<"example.com">>
+      <<"idp">> := IDP
    }} = permit:validate(Token).
 
 pubkey_claims_excalation(_Config) ->

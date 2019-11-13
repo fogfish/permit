@@ -28,7 +28,9 @@
    include/2,
    exclude/2,
    equals/2,
-   default_claims/0
+   default_claims/0,
+   to_access/1,
+   as_access/1
 ]).
 -export_type([access/0, secret/0, token/0, claims/0]).
 
@@ -288,3 +290,29 @@ default_claims() ->
       maps:from_list(_)
    ].
 
+%%
+%% Access Key consists in two formats
+%%  * master key suffix@prefix
+%%  * access key prefix-suffix
+-spec to_access(binary()) -> datum:either(access()).
+
+to_access(Access) ->
+   case binary:split(Access, <<$@>>) of
+      [_, _] ->
+         Prefix = base64url:encode(crypto:hash(md5, Access)),
+         {ok, {iri, Prefix, Access}};
+      [<<Prefix:22/binary, Suffix/binary>>] ->
+         {ok, {iri, Prefix, Suffix}};
+      _ ->
+         {error, {badarg, Access}}
+   end.
+
+-spec as_access(access()) -> datum:either(binary()).
+
+as_access({iri, Prefix, Suffix}) ->
+   case binary:split(Suffix, <<$@>>) of
+      [_, _] ->
+         {ok, Suffix};
+      _ ->
+         {ok, <<Prefix/binary, Suffix/binary>>}
+   end.

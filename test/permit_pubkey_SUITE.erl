@@ -25,7 +25,7 @@ all() ->
 new(_) ->
    Nonce  = <<"abcdef">>,
    Claims = #{<<"a">> => 1, <<"b">> => true, <<"c">> => <<"x">>},
-   Access = {iri, <<"example.com">>, <<"joe">>},
+   Access = {iri, <<"9bj7YMYRYzHaB8Zblqih0Q">>, <<"joe@example.com">>},
    Secret = <<"secret">>,
    
    HSecret = base64url:encode(permit_hash:sign(Secret, Nonce)),
@@ -49,7 +49,7 @@ new(_) ->
 %%
 auth(_Config) ->
    Claims = #{<<"a">> => 1, <<"b">> => true, <<"c">> => <<"x">>},
-   Access = {iri, <<"example.com">>, <<"joe">>},
+   Access = {iri, <<"9bj7YMYRYzHaB8Zblqih0Q">>, <<"joe@example.com">>},
    Secret = <<"secret">>,
 
    {ok, PubKey} = permit_pubkey:new(Access, Secret, Claims),
@@ -63,7 +63,7 @@ auth(_Config) ->
 %%
 invalid_secret(_Config) ->
    Claims = #{<<"a">> => 1, <<"b">> => true, <<"c">> => <<"x">>},
-   Access = {iri, <<"example.com">>, <<"joe">>},
+   Access = {iri, <<"9bj7YMYRYzHaB8Zblqih0Q">>, <<"joe@example.com">>},
    Secret = <<"secret">>,
 
    {ok, PubKey} = permit_pubkey:new(Access, Secret, Claims),
