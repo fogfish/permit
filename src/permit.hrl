@@ -9,9 +9,21 @@
 }).
 
 %%
-%%
+%% white list of allowed claims
+%% claim derive process would pass-them throught
 -define(PERMIT_CLAIMS,
-   [<<"app">>, <<"aud">>, <<"exp">>, <<"iss">>, <<"sub">>, <<"tji">>, <<"idp">>,<<"rev">>]
+   [
+      <<"app">>,
+      <<"aud">>,
+      <<"exp">>,
+      <<"iss">>,
+      <<"sub">>,
+      <<"tji">>,
+      <<"idp">>,
+      <<"rev">>,
+      <<"security">>,
+      <<"redirect_uri">>
+   ]
 ).
 
 %%

@@ -224,8 +224,10 @@ include(#pubkey{claims = Claims}, Required) ->
 
 include_it(Claims, Required)
  when is_map(Claims) andalso is_map(Required) ->
-   case maps:with(maps:keys(Required), Claims) of
-      Required ->
+   WhiteRequired = whitelist(Required),
+   WhiteClaims = whitelist(Claims),
+   case maps:with(maps:keys(WhiteRequired), WhiteClaims) of
+      WhiteRequired ->
          {ok, Claims};
       _ ->
          {error, forbidden}
@@ -247,8 +249,10 @@ exclude(#pubkey{claims = Claims}, Required) ->
 
 exclude_it(Claims, Required)
  when is_map(Claims) andalso is_map(Required) ->
-   case maps:with(maps:keys(Required), Claims) of
-      Required ->
+   WhiteRequired = whitelist(Required),
+   WhiteClaims = whitelist(Claims),
+   case maps:with(maps:keys(WhiteRequired), WhiteClaims) of
+      WhiteRequired ->
          {error, forbidden};
       _ ->
          {ok, Claims}
@@ -271,14 +275,16 @@ equals(#pubkey{claims = Claims}, Required) ->
 
 equals_match(Claims, Required)
  when is_map(Claims) andalso is_map(Required) ->
-   PureClaims = maps:without(?PERMIT_CLAIMS, Claims),
-   Keys = maps:keys(PureClaims),
-   case maps:keys(Required) of
+   Keys = maps:keys(whitelist(Claims)),
+   case maps:keys(whitelist(Required)) of
       Keys ->
          include_it(Claims, Required);
       _ ->
          {error, forbidden}
    end.
+
+whitelist(Claims) ->
+   maps:without(?PERMIT_CLAIMS, Claims).
 
 %%
 %%
