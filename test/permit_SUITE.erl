@@ -253,16 +253,6 @@ include_forbidden(_) ->
    {error, forbidden} = permit:include(Token, Required),
    {error, forbidden} = permit:include(PubKey, Required).
 
-include_whitelisted(_) ->
-   Access   = access(pubkey_include_whitelist),
-   Claims   = #{},
-   Required = #{<<"security">> => <<"public">>, <<"redirect_uri">> => <<"http://localhost/">>},
-   {ok, Token}  = permit:create(Access, secret(), Claims),
-   {ok, PubKey} = permit:lookup(Access),
-
-   {ok, _} = permit:include(Token, Required),
-   {ok, _} = permit:include(PubKey, Required).
-
 
 %%
 %%

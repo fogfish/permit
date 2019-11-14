@@ -124,7 +124,7 @@ pubkey({iri, Prefix, _} = Master, Claims) ->
       #pubkey{
          claims = Required
       } <- permit:lookup(Master),
-      include_it(Required, Claims),
+      include_it(Required, whitelist(Claims)),
       permit_pubkey:new(Access, Secret, Claims),
       permit_pubkey_db:create(_),
       cats:unit({Access, Secret})
@@ -224,10 +224,8 @@ include(#pubkey{claims = Claims}, Required) ->
 
 include_it(Claims, Required)
  when is_map(Claims) andalso is_map(Required) ->
-   WhiteRequired = whitelist(Required),
-   WhiteClaims = whitelist(Claims),
-   case maps:with(maps:keys(WhiteRequired), WhiteClaims) of
-      WhiteRequired ->
+   case maps:with(maps:keys(Required), Claims) of
+      Required ->
          {ok, Claims};
       _ ->
          {error, forbidden}
@@ -249,10 +247,8 @@ exclude(#pubkey{claims = Claims}, Required) ->
 
 exclude_it(Claims, Required)
  when is_map(Claims) andalso is_map(Required) ->
-   WhiteRequired = whitelist(Required),
-   WhiteClaims = whitelist(Claims),
-   case maps:with(maps:keys(WhiteRequired), WhiteClaims) of
-      WhiteRequired ->
+   case maps:with(maps:keys(Required), Claims) of
+      Required ->
          {error, forbidden};
       _ ->
          {ok, Claims}
