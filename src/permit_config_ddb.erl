@@ -20,7 +20,7 @@ keypair() ->
 
 encode(Public, Secret) ->
    #{
-      <<"public">> => encode_key('RSAPublicKey', Public)
+      <<"public">> => encode_key('SubjectPublicKeyInfo', Public)
    ,  <<"secret">> => encode_key('RSAPrivateKey', Secret)
    }.
 
