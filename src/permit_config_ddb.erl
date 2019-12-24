@@ -20,12 +20,20 @@ keypair() ->
 
 encode(Public, Secret) ->
    #{
-      <<"public">> => base64url:encode(erlang:term_to_binary(Public))
-   ,  <<"secret">> => base64url:encode(erlang:term_to_binary(Secret))
+      <<"public">> => encode_key('RSAPublicKey', Public)
+   ,  <<"secret">> => encode_key('RSAPrivateKey', Secret)
    }.
+
+encode_key(Type, Key) ->
+   Entry = public_key:pem_entry_encode(Type, Key),
+   public_key:pem_encode([Entry]).
 
 decode(#{<<"public">> := Public, <<"secret">> := Secret}) ->
    {ok,
-      erlang:binary_to_term(base64url:decode(Public))
-   ,  erlang:binary_to_term(base64url:decode(Secret))
+      decode_key(Public)
+   ,  decode_key(Secret)
    }.
+
+decode_key(Key) ->
+   [Entry] = public_key:pem_decode(Key),
+   public_key:pem_entry_decode(Entry).
